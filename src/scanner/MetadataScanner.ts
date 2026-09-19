@@ -23,13 +23,18 @@ export interface AudioMetadata {
   quality?: MetadataQuality;
 }
 
-function buildCoverDataUrl(picture?: { format?: string; data: Buffer }) {
+function buildCoverDataUrl(picture?: { format?: string; data: Uint8Array }) {
   if (!picture?.data) return undefined;
 
   const format = (picture.format || "").toLowerCase();
   const mime = format.includes("png") ? "image/png" : "image/jpeg";
 
-  return `data:${mime};base64,${picture.data.toString("base64")}`;
+  // music-metadata returns Uint8Array in some environments.
+  // Uint8Array.toString("base64") produces comma-separated bytes,
+  // not a valid base64 string.
+  const base64 = Buffer.from(picture.data).toString("base64");
+
+  return `data:${mime};base64,${base64}`;
 }
 
 export class MetadataScanner {
