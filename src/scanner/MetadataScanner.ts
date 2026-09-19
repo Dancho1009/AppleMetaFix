@@ -16,6 +16,7 @@ export interface AudioMetadata {
   cover?: string;
   coverDataUrl?: string;
   lyrics?: LyricsInfo;
+  lyricsPath?: string;
   format?: string;
   bitrate?: number;
   sampleRate?: number;
@@ -51,6 +52,7 @@ export class MetadataScanner {
       cover: picture ? `embedded:${picture.format}` : undefined,
       coverDataUrl,
       lyrics,
+      lyricsPath: lyrics.path,
       format: format.container,
       bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
       sampleRate: format.sampleRate,
