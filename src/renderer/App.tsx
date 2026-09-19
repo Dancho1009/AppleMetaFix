@@ -73,8 +73,10 @@ export default function App(){
   <div className="music-layout">
    <section className="card song-card">
     <input className="search-box" placeholder="搜索歌曲、艺术家、专辑、流派" value={keyword} onChange={e=>setKeyword(e.target.value)}/>
-    <table><thead><tr><th>封面</th><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>歌词</th></tr></thead>
-    <tbody>{filtered.map(song=><tr key={song.path} onClick={()=>setSelectedSong(song)}><td><img className="table-cover" src={resolveCover(song)}/></td><td>{song.title}</td><td>{song.artist}</td><td>{song.album}</td><td>{song.genre||"-"}</td><td>{getLyricsLabel(song)}</td></tr>)}</tbody></table>
+    <div className="song-table-container">
+     <table><thead><tr><th>封面</th><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>歌词</th></tr></thead>
+     <tbody>{filtered.map(song=><tr key={song.path} onClick={()=>setSelectedSong(song)}><td><img className="table-cover" src={resolveCover(song)}/></td><td>{song.title}</td><td>{song.artist}</td><td>{song.album}</td><td>{song.genre||"-"}</td><td>{getLyricsLabel(song)}</td></tr>)}</tbody></table>
+    </div>
    </section>
    {selectedSong&&<DetailPanel song={selectedSong} onClose={()=>setSelectedSong(null)}/>} 
   </div>
