@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import "./app.css";
 
 interface SongItem {
@@ -22,6 +22,8 @@ export default function App() {
   const [status, setStatus] = useState("等待扫描音乐库...");
   const [folder, setFolder] = useState("");
   const [songs, setSongs] = useState<SongItem[]>([]);
+  const [keyword, setKeyword] = useState("");
+  const [filter, setFilter] = useState("全部");
 
   const handleSelectFolder = async () => {
     try {
@@ -45,10 +47,20 @@ export default function App() {
       setSongs(result || []);
       setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
     } catch (error) {
-      console.error(error);
       setStatus(`选择文件夹失败: ${String(error)}`);
     }
   };
+
+  const filteredSongs = useMemo(() => {
+    return songs.filter((song) => {
+      const text = `${song.title || ""} ${song.artist || ""} ${song.album || ""}`.toLowerCase();
+      const matchKeyword = text.includes(keyword.toLowerCase());
+      const matchType =
+        filter === "全部" ||
+        song.path.toLowerCase().endsWith(filter.toLowerCase());
+      return matchKeyword && matchType;
+    });
+  }, [songs, keyword, filter]);
 
   return (
     <main className="app-container">
@@ -57,14 +69,12 @@ export default function App() {
         <p className="subtitle">Apple Music 元数据增强工具</p>
       </header>
 
-      <section className="card">
-        <div className="toolbar">
-          <button onClick={handleSelectFolder}>选择音乐文件夹</button>
-        </div>
+      <section className="card toolbar-card">
+        <button onClick={handleSelectFolder}>选择音乐文件夹</button>
         <div className="path">{folder || "未选择文件夹"}</div>
       </section>
 
-      <section className="card">
+      <section className="card status-card">
         <h2>扫描状态</h2>
         <p>{status}</p>
       </section>
@@ -72,24 +82,31 @@ export default function App() {
       <section className="card">
         <h2>音乐库统计</h2>
         <div className="stats">
-          <div className="stat">
-            <div className="stat-number">{songs.length}</div>
-            <div>歌曲总数</div>
-          </div>
-          <div className="stat">
-            <div className="stat-number">0</div>
-            <div>已匹配</div>
-          </div>
-          <div className="stat">
-            <div className="stat-number">{songs.length}</div>
-            <div>待匹配</div>
-          </div>
+          <div className="stat"><div className="stat-number">{songs.length}</div>歌曲总数</div>
+          <div className="stat"><div className="stat-number">0</div>已匹配</div>
+          <div className="stat"><div className="stat-number">{songs.length}</div>待匹配</div>
         </div>
       </section>
 
-      <section className="card">
-        <h2>歌曲列表</h2>
-        <div className="table-container">
+      <section className="card song-card">
+        <div className="table-header">
+          <h2>歌曲列表 ({filteredSongs.length})</h2>
+          <div className="filters">
+            <input
+              placeholder="搜索歌曲、艺术家、专辑"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <option>全部</option>
+              <option>.flac</option>
+              <option>.mp3</option>
+              <option>.m4a</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="table-container large-table">
           <table>
             <thead>
               <tr>
@@ -103,7 +120,7 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              {songs.map((song) => (
+              {filteredSongs.map((song) => (
                 <tr key={song.path}>
                   <td title={song.title}>{song.title || "-"}</td>
                   <td title={song.artist}>{song.artist || "-"}</td>
