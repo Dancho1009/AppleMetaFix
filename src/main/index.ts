@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { registerIPCHandlers } from './ipc';
 
 // 保存需要退出时清理的后台任务
@@ -23,8 +24,6 @@ async function cleanupBeforeExit() {
 }
 
 function setupElectronCache() {
-  // 将 Electron Chromium 缓存放到启动目录同级 cache 文件夹
-  // 避免 Windows 用户目录权限问题导致启动时刷缓存错误
   const cachePath = path.join(process.cwd(), 'cache');
 
   if (!existsSync(cachePath)) {
@@ -32,11 +31,22 @@ function setupElectronCache() {
   }
 
   app.setPath('cache', cachePath);
-
-  // 禁止 GPU shader disk cache，避免 Windows 下缓存文件锁定或权限异常
   app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 
   console.log('Electron cache:', cachePath);
+}
+
+function registerAppCleanup() {
+  registerCleanupTask(async () => {
+    const coverCache = path.join(app.getPath('userData'), 'cache', 'covers');
+
+    try {
+      await rm(coverCache, { recursive: true, force: true });
+      console.log('[App] cover cache removed:', coverCache);
+    } catch (error) {
+      console.error('[App] remove cover cache failed:', error);
+    }
+  });
 }
 
 function getPreloadPath() {
@@ -82,16 +92,15 @@ function createWindow() {
 
 app.whenReady().then(() => {
   setupElectronCache();
+  registerAppCleanup();
   registerIPCHandlers();
   createWindow();
 });
 
-// Windows/Linux 关闭窗口时完全退出
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// 确保退出前释放后台任务、扫描任务等资源
 app.on('before-quit', async (event) => {
   if (cleanupTasks.length > 0) {
     event.preventDefault();
