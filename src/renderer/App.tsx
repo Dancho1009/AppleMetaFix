@@ -5,6 +5,20 @@ interface SongItem {
   title?: string;
   artist?: string;
   album?: string;
+  duration?: number;
+  year?: number;
+  genre?: string;
+}
+
+function formatDuration(seconds?: number) {
+  if (!seconds) return "-";
+
+  const min = Math.floor(seconds / 60);
+  const sec = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
+
+  return `${min}:${sec}`;
 }
 
 export default function App() {
@@ -15,9 +29,7 @@ export default function App() {
   const handleSelectFolder = async () => {
     const selectedFolder = await window.appleMetaFix?.selectFolder();
 
-    if (!selectedFolder) {
-      return;
-    }
+    if (!selectedFolder) return;
 
     setFolder(selectedFolder);
     setStatus("正在扫描音乐库...");
@@ -32,10 +44,8 @@ export default function App() {
       <h1>AppleMetaFix</h1>
       <p>Apple Music 元数据增强工具</p>
 
-      <section>
-        <button onClick={handleSelectFolder}>选择音乐文件夹</button>
-        <p>{folder}</p>
-      </section>
+      <button onClick={handleSelectFolder}>选择音乐文件夹</button>
+      <p>{folder}</p>
 
       <section style={{ marginTop: 24 }}>
         <h2>扫描状态</h2>
@@ -44,22 +54,28 @@ export default function App() {
 
       <section style={{ marginTop: 24 }}>
         <h2>歌曲列表</h2>
-        <table>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th>文件</th>
               <th>标题</th>
               <th>艺术家</th>
               <th>专辑</th>
+              <th>年份</th>
+              <th>类型</th>
+              <th>时长</th>
+              <th>路径</th>
             </tr>
           </thead>
           <tbody>
             {songs.map((song) => (
               <tr key={song.path}>
-                <td>{song.path}</td>
                 <td>{song.title || "-"}</td>
                 <td>{song.artist || "-"}</td>
                 <td>{song.album || "-"}</td>
+                <td>{song.year || "-"}</td>
+                <td>{song.genre || "-"}</td>
+                <td>{formatDuration(song.duration)}</td>
+                <td>{song.path}</td>
               </tr>
             ))}
           </tbody>
