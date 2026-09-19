@@ -2,13 +2,16 @@ import React, { useMemo, useState } from "react";
 import "./app.css";
 
 interface LyricsInfo { exists:boolean; type:"embedded"|"external"|"none"; format?:string; path?:string; }
-interface SongItem { path:string; title?:string; artist?:string; album?:string; year?:number; cover?:string|boolean; lyrics?:LyricsInfo; }
+interface SongItem { path:string; title?:string; artist?:string; album?:string; albumArtist?:string; composer?:string; genre?:string; year?:number; cover?:string|boolean; lyrics?:LyricsInfo; }
 
 function getTags(song:SongItem){
  const tags:string[]=[];
  if(song.title) tags.push("标题");
  if(song.artist) tags.push("艺术家");
  if(song.album) tags.push("专辑");
+ if(song.albumArtist) tags.push("专辑艺术家");
+ if(song.composer) tags.push("作曲");
+ if(song.genre) tags.push("流派");
  if(song.year) tags.push("年份");
  if(song.cover) tags.push("封面");
  return tags;
@@ -40,7 +43,7 @@ export default function App(){
   setStatus(`扫描完成，共发现 ${result?.length||0} 首歌曲`);
  };
 
- const filtered=useMemo(()=>songs.filter(s=>`${s.title||""} ${s.artist||""} ${s.album||""}`.toLowerCase().includes(keyword.toLowerCase())),[songs,keyword]);
+ const filtered=useMemo(()=>songs.filter(s=>`${s.title||""} ${s.artist||""} ${s.album||""} ${s.genre||""}`.toLowerCase().includes(keyword.toLowerCase())),[songs,keyword]);
 
  return <main className="app-container">
   <header className="header compact-header"><h1>AppleMetaFix</h1><p>Apple Music 元数据增强工具</p></header>
@@ -53,15 +56,17 @@ export default function App(){
    <section className="card song-card">
     <div className="table-header">
      <h2>歌曲列表 ({filtered.length})</h2>
-     <input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={e=>setKeyword(e.target.value)}/>
+     <input placeholder="搜索歌曲、艺术家、专辑、流派" value={keyword} onChange={e=>setKeyword(e.target.value)}/>
     </div>
     <div className="table-container large-table">
      <table>
-      <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>歌词</th><th>元数据标签</th></tr></thead>
+      <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>年份</th><th>歌词</th><th>元数据标签</th></tr></thead>
       <tbody>{filtered.map(s=><tr key={s.path} onClick={()=>setSelectedSong(s)}>
        <td>{s.title||"-"}</td>
        <td>{s.artist||"-"}</td>
        <td>{s.album||"-"}</td>
+       <td>{s.genre||"-"}</td>
+       <td>{s.year||"-"}</td>
        <td>{getLyricsLabel(s)}</td>
        <td>{getTags(s).join(" / ")}</td>
       </tr>)}</tbody>
@@ -74,6 +79,10 @@ export default function App(){
     <p><b>标题：</b>{selectedSong.title||"-"}</p>
     <p><b>艺术家：</b>{selectedSong.artist||"-"}</p>
     <p><b>专辑：</b>{selectedSong.album||"-"}</p>
+    <p><b>专辑艺术家：</b>{selectedSong.albumArtist||"-"}</p>
+    <p><b>作曲：</b>{selectedSong.composer||"-"}</p>
+    <p><b>流派：</b>{selectedSong.genre||"-"}</p>
+    <p><b>年份：</b>{selectedSong.year||"-"}</p>
     <p><b>歌词：</b>{getLyricsLabel(selectedSong)}</p>
     <p><b>已有标签：</b>{getTags(selectedSong).join("、")||"无"}</p>
    </aside>}
