@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "music-metadata": "latest"
   }
 }
