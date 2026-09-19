@@ -45,19 +45,14 @@ export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
       </div>
 
       <div className="dashboard-row">
-        <div className="dashboard-group">
-          <span className="dashboard-label">格式</span>
-          {Object.entries(stats.formats || {}).map(([name, count]) => (
-            <span className="dashboard-tag" key={name}>{name} {count}</span>
-          ))}
-        </div>
-
-        <div className="dashboard-group">
-          <span className="dashboard-label">歌词</span>
-          <span className="dashboard-tag">内嵌 {embedded}</span>
-          <span className="dashboard-tag">LRC {external}</span>
-          <span className="dashboard-tag">缺失 {missing}</span>
-        </div>
+        <span className="dashboard-label">格式</span>
+        {Object.entries(stats.formats || {}).map(([name, count]) => (
+          <span className="dashboard-tag" key={name}>{name} {count}</span>
+        ))}
+        <span className="dashboard-label lyrics-label">歌词</span>
+        <span className="dashboard-tag">内嵌 {embedded}</span>
+        <span className="dashboard-tag">LRC {external}</span>
+        <span className="dashboard-tag">缺失 {missing}</span>
       </div>
     </section>
   );
