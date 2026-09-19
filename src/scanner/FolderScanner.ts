@@ -30,13 +30,20 @@ export class FolderScanner {
         title: metadata.title,
         artist: metadata.artist,
         album: metadata.album,
+        album_artist: metadata.albumArtist,
+        composer: metadata.composer,
         genre: metadata.genre,
         year: metadata.year,
         duration: metadata.duration,
         format: metadata.format,
         bitrate: metadata.bitrate,
-        lyrics_type: metadata.lyricsType,
-        cover_exist: Boolean(metadata.cover),
+        sample_rate: metadata.sampleRate,
+        lyrics_type: metadata.lyrics?.type,
+        lyrics_path: metadata.lyricsPath,
+        embedded_lyrics:
+          metadata.lyrics?.embedded?.content ?? undefined,
+        cover_data_url: metadata.coverDataUrl,
+        cover_exist: Boolean(metadata.coverDataUrl || metadata.cover),
       });
     }
 
