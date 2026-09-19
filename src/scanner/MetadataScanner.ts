@@ -1,6 +1,7 @@
 import { parseFile } from "music-metadata";
-import { LyricsScanner, LyricsInfo } from "./LyricsScanner";
+import { LyricsScanner } from "./LyricsScanner";
 import { MetadataQuality, analyzeMetadataQuality } from "./MetadataQuality";
+import { saveCoverToCache } from "./CoverCache";
 
 export interface AudioMetadata {
   path: string;
@@ -14,27 +15,13 @@ export interface AudioMetadata {
   genre?: string;
   isrc?: string;
   cover?: string;
-  coverDataUrl?: string;
-  lyrics?: LyricsInfo;
+  coverPath?: string;
+  lyrics?: any;
   lyricsPath?: string;
   format?: string;
   bitrate?: number;
   sampleRate?: number;
   quality?: MetadataQuality;
-}
-
-function buildCoverDataUrl(picture?: { format?: string; data: Uint8Array }) {
-  if (!picture?.data) return undefined;
-
-  const format = (picture.format || "").toLowerCase();
-  const mime = format.includes("png") ? "image/png" : "image/jpeg";
-
-  // music-metadata returns Uint8Array in some environments.
-  // Uint8Array.toString("base64") produces comma-separated bytes,
-  // not a valid base64 string.
-  const base64 = Buffer.from(picture.data).toString("base64");
-
-  return `data:${mime};base64,${base64}`;
 }
 
 export class MetadataScanner {
@@ -44,20 +31,14 @@ export class MetadataScanner {
     const metadata = await parseFile(filePath);
     const common = metadata.common;
     const format = metadata.format;
-
     const lyrics = await this.lyricsScanner.scan(filePath, metadata);
 
     const picture = common.picture?.[0];
-    const coverDataUrl = buildCoverDataUrl(picture);
+    let coverPath: string | undefined;
 
-    console.log("[Cover Debug]", {
-      file: filePath,
-      exists: !!picture,
-      mime: picture?.format,
-      bytes: picture?.data?.length ?? 0,
-      base64Length: coverDataUrl?.length ?? 0,
-      preview: coverDataUrl?.slice(0, 40),
-    });
+    if (picture?.data) {
+      coverPath = await saveCoverToCache(filePath, picture.data, picture.format);
+    }
 
     const result: AudioMetadata = {
       path: filePath,
@@ -70,8 +51,8 @@ export class MetadataScanner {
       year: common.year,
       genre: common.genre?.[0],
       isrc: common.isrc?.[0],
-      cover: picture ? `embedded:${picture.format}` : undefined,
-      coverDataUrl,
+      cover: coverPath ? "cached" : undefined,
+      coverPath,
       lyrics,
       lyricsPath: lyrics.path,
       format: format.container,
@@ -80,7 +61,6 @@ export class MetadataScanner {
     };
 
     result.quality = analyzeMetadataQuality(result);
-
     return result;
   }
 }
