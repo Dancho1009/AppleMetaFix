@@ -38,6 +38,14 @@ export class MetadataScanner {
       ? `data:${picture.format};base64,${picture.data.toString("base64")}`
       : undefined;
 
+    console.log("[Cover Debug]", {
+      file: filePath,
+      exists: !!picture,
+      mime: picture?.format,
+      bytes: picture?.data?.length ?? 0,
+      base64Length: coverDataUrl?.length ?? 0,
+    });
+
     const result: AudioMetadata = {
       path: filePath,
       title: common.title,
