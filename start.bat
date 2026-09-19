@@ -21,12 +21,23 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 检查 electron-vite 是否存在，而不是只检查 node_modules 文件夹
 if not exist "node_modules\.bin\electron-vite.cmd" (
     echo 未检测到 Electron 开发依赖，正在安装...
     call npm install
     if errorlevel 1 (
         echo [错误] npm install 失败。
+        pause
+        exit /b 1
+    )
+)
+
+REM 检查 Electron 二进制是否正常
+npx electron --version >nul 2>&1
+if errorlevel 1 (
+    echo Electron 二进制异常，正在重新安装...
+    call npm rebuild electron
+    if errorlevel 1 (
+        echo [错误] Electron 修复失败。
         pause
         exit /b 1
     )
