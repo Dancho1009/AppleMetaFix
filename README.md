@@ -1,56 +1,117 @@
 # AppleMetaFix
 
-Apple Music based local music metadata enhancement tool.
+AppleMetaFix 是一个基于 Apple Music 数据源的本地音乐元数据增强工具。
 
-## Goal
+## 项目目标
 
-AppleMetaFix helps enhance local music libraries by matching local audio files with Apple Music metadata.
+AppleMetaFix 用于增强本地音乐库，通过 Apple Music 等高质量数据源匹配本地音频文件，自动补充和修正音乐元数据。
 
-Planned features:
+主要目标：
 
-- Scan local music files
-- Read existing metadata
-- Search Apple Music catalog
-- Match candidates with confidence score
-- Preview metadata changes
-- Write metadata back to files
-- Download artwork
-- Export synchronized lyrics when available
+- 扫描本地音乐文件
+- 读取已有音频标签
+- 根据歌曲信息搜索 Apple Music 数据
+- 使用智能匹配算法确认候选结果
+- 预览元数据修改内容
+- 将信息写回音乐文件
+- 下载专辑封面
+- 获取并转换同步歌词
 
-## Architecture
+## 支持功能规划
+
+### 音乐扫描
+
+支持格式：
+
+- FLAC
+- MP3
+- M4A
+- WAV
+
+读取信息：
+
+- 标题
+- 艺术家
+- 专辑
+- 发行年份
+- 时长
+- ISRC
+- 内嵌封面
+
+### Apple Music 数据增强
+
+通过 Apple Music 数据源获取：
+
+- 标准歌曲名称
+- 艺术家信息
+- 专辑信息
+- 发行日期
+- 流派
+- 曲目编号
+- 专辑封面
+- ISRC
+- 同步歌词（可用时）
+
+## 项目架构
 
 ```
-Local Music Files
+本地音乐文件
         |
         v
-Metadata Scanner
+元数据扫描器
         |
         v
-Apple Music Provider
+Apple Music 数据提供器
         |
         v
-Match Engine
+智能匹配引擎
         |
         v
-Review & Write
+人工确认与写入
 ```
 
-## Development Roadmap
+## 开发路线
 
-### Phase 1
-- Electron + React + TypeScript foundation
-- Audio metadata scanner
-- Basic UI
+## 第一阶段：基础框架（当前阶段）
 
-### Phase 2
-- Apple Music metadata search
-- Matching algorithm
+目标：建立桌面应用基础。
 
-### Phase 3
-- Tag writer
-- Artwork management
-- Lyrics processing
+计划：
 
-## License
+- Electron + React + TypeScript 框架
+- 基础窗口和 UI
+- 文件夹选择
+- 音频文件扫描
+- 元数据读取模块
+
+## 第二阶段：Apple Music 元数据匹配
+
+计划：
+
+- Apple Music 搜索接口
+- 歌曲候选列表
+- 匹配评分系统
+- 自动推荐机制
+
+## 第三阶段：元数据写入
+
+计划：
+
+- FLAC 标签写入
+- MP3 ID3 写入
+- M4A 标签写入
+- 封面管理
+
+## 第四阶段：歌词与高级功能
+
+计划：
+
+- Apple Music TTML 歌词解析
+- LRC 导出
+- 批量处理
+- 修改历史记录
+- 回滚功能
+
+## 许可证
 
 MIT
