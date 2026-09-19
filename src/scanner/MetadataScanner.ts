@@ -23,6 +23,15 @@ export interface AudioMetadata {
   quality?: MetadataQuality;
 }
 
+function buildCoverDataUrl(picture?: { format?: string; data: Buffer }) {
+  if (!picture?.data) return undefined;
+
+  const format = (picture.format || "").toLowerCase();
+  const mime = format.includes("png") ? "image/png" : "image/jpeg";
+
+  return `data:${mime};base64,${picture.data.toString("base64")}`;
+}
+
 export class MetadataScanner {
   private lyricsScanner = new LyricsScanner();
 
@@ -34,9 +43,7 @@ export class MetadataScanner {
     const lyrics = await this.lyricsScanner.scan(filePath, metadata);
 
     const picture = common.picture?.[0];
-    const coverDataUrl = picture
-      ? `data:${picture.format};base64,${picture.data.toString("base64")}`
-      : undefined;
+    const coverDataUrl = buildCoverDataUrl(picture);
 
     console.log("[Cover Debug]", {
       file: filePath,
@@ -44,6 +51,7 @@ export class MetadataScanner {
       mime: picture?.format,
       bytes: picture?.data?.length ?? 0,
       base64Length: coverDataUrl?.length ?? 0,
+      preview: coverDataUrl?.slice(0, 40),
     });
 
     const result: AudioMetadata = {
