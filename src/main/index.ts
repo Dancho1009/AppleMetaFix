@@ -1,10 +1,9 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
+import { readFile, writeFile, rm } from 'node:fs/promises';
 import { registerIPCHandlers } from './ipc';
 
-// 保存需要退出时清理的后台任务
 const cleanupTasks: Array<() => void | Promise<void>> = [];
 
 export function registerCleanupTask(task: () => void | Promise<void>) {
@@ -34,6 +33,48 @@ function setupElectronCache() {
   app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 
   console.log('Electron cache:', cachePath);
+}
+
+function getWindowStatePath() {
+  return path.join(app.getPath('userData'), 'window-state.json');
+}
+
+async function loadWindowState() {
+  const defaultState = {
+    width: 1200,
+    height: 800,
+  };
+
+  try {
+    const content = await readFile(getWindowStatePath(), 'utf-8');
+    return {
+      ...defaultState,
+      ...JSON.parse(content),
+    };
+  } catch {
+    return defaultState;
+  }
+}
+
+function saveWindowState(window: BrowserWindow) {
+  const save = async () => {
+    if (window.isDestroyed()) return;
+
+    const bounds = window.getBounds();
+    await writeFile(
+      getWindowStatePath(),
+      JSON.stringify({
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.x,
+        y: bounds.y,
+      }),
+      'utf-8',
+    );
+  };
+
+  window.on('resize', save);
+  window.on('move', save);
 }
 
 function registerAppCleanup() {
@@ -70,16 +111,22 @@ function getPreloadPath() {
   return preloadPath;
 }
 
-function createWindow() {
+async function createWindow() {
+  const state = await loadWindowState();
+
   const window = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: state.width,
+    height: state.height,
+    x: state.x,
+    y: state.y,
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+
+  saveWindowState(window);
 
   const rendererUrl = process.env.ELECTRON_RENDERER_URL;
 
