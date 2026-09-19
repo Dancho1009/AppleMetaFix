@@ -50,3 +50,9 @@ export function upsertSong(song: CachedSong) {
 export function getSongs() {
   return getDatabase().prepare("SELECT * FROM songs ORDER BY id DESC").all();
 }
+
+export function getSongByPath(filePath: string) {
+  return getDatabase()
+    .prepare("SELECT * FROM songs WHERE path = ? LIMIT 1")
+    .get(filePath);
+}
