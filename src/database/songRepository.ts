@@ -57,7 +57,23 @@ export function upsertSong(song: CachedSong) {
   `);
 
   stmt.run({
-    ...song,
+    path: song.path,
+    filename: song.filename,
+    title: song.title ?? null,
+    artist: song.artist ?? null,
+    album: song.album ?? null,
+    album_artist: song.album_artist ?? null,
+    composer: song.composer ?? null,
+    genre: song.genre ?? null,
+    year: song.year ?? null,
+    duration: song.duration ?? null,
+    format: song.format ?? null,
+    bitrate: song.bitrate ?? null,
+    sample_rate: song.sample_rate ?? null,
+    lyrics_type: song.lyrics_type ?? null,
+    lyrics_path: song.lyrics_path ?? null,
+    embedded_lyrics: song.embedded_lyrics ?? null,
+    cover_data_url: song.cover_data_url ?? null,
     cover_exist: song.cover_exist ? 1 : 0,
     last_scan_time: Date.now(),
   });
