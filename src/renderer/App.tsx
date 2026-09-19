@@ -27,16 +27,31 @@ export default function App() {
   const [songs, setSongs] = useState<SongItem[]>([]);
 
   const handleSelectFolder = async () => {
-    const selectedFolder = await window.appleMetaFix?.selectFolder();
+    try {
+      if (!window.appleMetaFix) {
+        setStatus("错误：Electron preload 未加载");
+        return;
+      }
 
-    if (!selectedFolder) return;
+      setStatus("正在打开文件夹选择窗口...");
 
-    setFolder(selectedFolder);
-    setStatus("正在扫描音乐库...");
+      const selectedFolder = await window.appleMetaFix.selectFolder();
 
-    const result = await window.appleMetaFix?.scanFolder(selectedFolder);
-    setSongs(result || []);
-    setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
+      if (!selectedFolder) {
+        setStatus("已取消选择文件夹");
+        return;
+      }
+
+      setFolder(selectedFolder);
+      setStatus("正在扫描音乐库...");
+
+      const result = await window.appleMetaFix.scanFolder(selectedFolder);
+      setSongs(result || []);
+      setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
+    } catch (error) {
+      console.error(error);
+      setStatus(`选择文件夹失败: ${String(error)}`);
+    }
   };
 
   return (
@@ -45,7 +60,7 @@ export default function App() {
       <p>Apple Music 元数据增强工具</p>
 
       <button onClick={handleSelectFolder}>选择音乐文件夹</button>
-      <p>{folder}</p>
+      <p>{folder || "未选择文件夹"}</p>
 
       <section style={{ marginTop: 24 }}>
         <h2>扫描状态</h2>
