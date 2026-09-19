@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import path from 'path';
+import path from 'node:path';
 import { registerIPCHandlers } from './ipc';
 
 function createWindow() {
@@ -12,10 +12,18 @@ function createWindow() {
     },
   });
 
-  window.loadFile('index.html');
+  if (process.env.VITE_DEV_SERVER_URL) {
+    window.loadURL(process.env.VITE_DEV_SERVER_URL);
+  } else {
+    window.loadFile(path.join(__dirname, '../renderer/index.html'));
+  }
 }
 
 app.whenReady().then(() => {
   registerIPCHandlers();
   createWindow();
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
 });
