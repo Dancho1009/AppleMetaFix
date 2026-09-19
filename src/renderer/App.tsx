@@ -27,10 +27,10 @@ interface SongItem {
 }
 
 function resolveCover(song:SongItem){
- const cover:any=song.coverDataUrl||song.coverPath||song.cover_path;
- if(!cover)return "";
- if(cover.startsWith("data:image"))return cover;
- return `file:///${cover.replace(/\\/g,"/")}`;
+  if(song.coverDataUrl?.startsWith("data:image")) return song.coverDataUrl;
+  const cover=song.coverPath||song.cover_path;
+  if(!cover) return "";
+  return `file:///${encodeURI(cover.replace(/\\/g,"/"))}`;
 }
 
 function getLyricsLabel(song:SongItem){
@@ -47,7 +47,7 @@ function DetailPanel({song}:{song:SongItem}){
  const cover=resolveCover(song);
  return <aside className="card detail-panel">
  <h2>歌曲详情</h2>
- {cover&&<img className="detail-cover" src={cover} alt="cover"/>}
+ {cover&&<img className="detail-cover" src={cover} alt="cover" onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display="none";}}/>}
  <h3>基础信息</h3>
  <p>标题：{song.title||"-"}</p>
  <p>艺术家：{song.artist||"-"}</p>
@@ -76,12 +76,9 @@ export default function App(){
  const [songs,setSongs]=useState<SongItem[]>([]);
  const [selectedSong,setSelectedSong]=useState<SongItem|null>(null);
  const [keyword,setKeyword]=useState("");
- const [progress,setProgress]=useState<any>(null);
 
  useEffect(()=>{
-  const handler=(p:any)=>setProgress(p);
-  api.onScanProgress?.(handler);
-  return ()=>api.offScanProgress?.(handler);
+  return ()=>{};
  },[]);
 
  const selectFolder=async()=>{
@@ -89,11 +86,9 @@ export default function App(){
   if(!dir)return;
   setFolder(dir);
   setSongs(await api.scanFolder(dir)||[]);
-  setProgress(null);
  };
 
  const selectSong=async(song:SongItem)=>{
-  if(selectedSong?.path===song.path){setSelectedSong(null);return;}
   const detail=await api.getSongDetail(song.path);
   setSelectedSong({...song,...detail});
  };
@@ -102,11 +97,10 @@ export default function App(){
  return <main className="app-container">
  <h1>AppleMetaFix</h1>
  <section className="card"><button onClick={selectFolder}>选择音乐文件夹</button>{folder}</section>
- {progress&&<div className="card">扫描中 {progress.current}/{progress.total} {progress.file}</div>}
  <div className="music-layout">
  <section className="card song-card">
  <input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={e=>setKeyword(e.target.value)}/>
- <table><thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>歌词</th></tr></thead><tbody>{filtered.map(song=><tr key={song.path} onClick={()=>selectSong(song)}><td>{song.title}</td><td>{song.artist}</td><td>{song.album}</td><td>{getLyricsLabel(song)}</td></tr>)}</tbody></table>
+ <table><thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>歌词</th></tr></thead><tbody>{filtered.map(song=><tr key={song.path} onClick={()=>selectSong(song)}><td>{song.title}</td><td>{song.artist}</td><td>{song.album}</td><td>{song.genre||"-"}</td><td>{getLyricsLabel(song)}</td></tr>)}</tbody></table>
  </section>
  {selectedSong&&<DetailPanel song={selectedSong}/>} 
  </div></main>;
