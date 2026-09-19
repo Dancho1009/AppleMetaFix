@@ -2,6 +2,12 @@ import React, { useState } from "react";
 
 export default function App() {
   const [status, setStatus] = useState("等待扫描音乐库...");
+  const [folder, setFolder] = useState("");
+
+  const handleSelectFolder = () => {
+    setFolder("未连接文件选择器");
+    setStatus("准备接入 Electron 文件夹选择功能...");
+  };
 
   return (
     <main style={{ padding: 32, fontFamily: "sans-serif" }}>
@@ -9,7 +15,8 @@ export default function App() {
       <p>Apple Music 元数据增强工具</p>
 
       <section>
-        <button onClick={() => setStatus("正在选择音乐目录...")}>选择音乐文件夹</button>
+        <button onClick={handleSelectFolder}>选择音乐文件夹</button>
+        <p>{folder}</p>
       </section>
 
       <section style={{ marginTop: 24 }}>
