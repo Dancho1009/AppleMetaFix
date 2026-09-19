@@ -30,26 +30,22 @@ export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
 
   return (
     <section className="card dashboard compact-dashboard">
-      <h2>音乐库概览</h2>
-      <div className="dashboard-grid">
-        <div>歌曲<strong>{stats.songs || 0}</strong></div>
-        <div>艺术家<strong>{stats.artists || 0}</strong></div>
-        <div>专辑<strong>{stats.albums || 0}</strong></div>
-        <div>容量<strong>{formatSize(stats.totalSize)}</strong></div>
+      <div className="dashboard-header">
+        <h2>音乐库</h2>
+        <span>
+          {stats.songs || 0} 首歌曲 · {stats.artists || 0} 位艺术家 · {stats.albums || 0} 张专辑 · {formatSize(stats.totalSize)}
+        </span>
       </div>
 
       <div className="dashboard-row">
-        <span>格式：</span>
+        <span className="dashboard-label">格式</span>
         {Object.entries(stats.formats || {}).map(([name, count]) => (
-          <span key={name}>{name} {count}</span>
+          <span className="dashboard-tag" key={name}>{name} {count}</span>
         ))}
-      </div>
-
-      <div className="dashboard-row">
-        <span>歌词：</span>
-        <span>内嵌 {stats.lyrics?.embedded || 0}</span>
-        <span>LRC {stats.lyrics?.external || 0}</span>
-        <span>缺失 {stats.lyrics?.missing || 0}</span>
+        <span className="dashboard-label lyrics-label">歌词</span>
+        <span className="dashboard-tag">内嵌 {stats.lyrics?.embedded || 0}</span>
+        <span className="dashboard-tag">LRC {stats.lyrics?.external || 0}</span>
+        <span className="dashboard-tag">缺失 {stats.lyrics?.missing || 0}</span>
       </div>
     </section>
   );
