@@ -30,7 +30,7 @@ export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
 
   const embedded = stats.lyrics?.embedded || 0;
   const external = stats.lyrics?.external || 0;
-  const missing = Math.max(0, (stats.songs || 0) - embedded - external);
+  const missing = stats.lyrics?.missing || 0;
 
   return (
     <section className="card dashboard compact-dashboard">
