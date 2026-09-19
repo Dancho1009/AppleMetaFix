@@ -3,15 +3,7 @@ import path from "path";
 import { MetadataScanner, AudioMetadata } from "./MetadataScanner";
 import { upsertSong } from "../database/songRepository";
 
-const AUDIO_EXTENSIONS = new Set([
-  ".flac",
-  ".mp3",
-  ".m4a",
-  ".aac",
-  ".wav",
-  ".ogg",
-  ".opus",
-]);
+const AUDIO_EXTENSIONS = new Set([".flac", ".mp3", ".m4a", ".aac", ".wav", ".ogg", ".opus"]);
 
 export interface ScanStats {
   files: number;
@@ -23,6 +15,11 @@ export interface ScanStats {
   coverCount: number;
   lyricsCount: number;
   missingLyrics: number;
+  lyrics: {
+    embedded: number;
+    external: number;
+    missing: number;
+  };
 }
 
 export interface ScanProgress {
@@ -36,10 +33,7 @@ export interface ScanProgress {
 export class FolderScanner {
   private metadataScanner = new MetadataScanner();
 
-  async scanFolder(
-    folderPath: string,
-    onProgress?: (progress: ScanProgress) => void,
-  ): Promise<AudioMetadata[]> {
+  async scanFolder(folderPath: string, onProgress?: (progress: ScanProgress) => void): Promise<AudioMetadata[]> {
     const files = await this.collectAudioFiles(folderPath);
     const results: AudioMetadata[] = [];
 
@@ -53,9 +47,8 @@ export class FolderScanner {
       coverCount: 0,
       lyricsCount: 0,
       missingLyrics: 0,
+      lyrics: { embedded: 0, external: 0, missing: 0 },
     };
-
-    onProgress?.({ phase: "collect", current: files.length, total: files.length, file: folderPath, stats });
 
     const artists = new Set<string>();
     const albums = new Set<string>();
@@ -70,10 +63,18 @@ export class FolderScanner {
       const format = (metadata.format || path.extname(file).slice(1) || "unknown").toUpperCase();
       stats.formats[format] = (stats.formats[format] || 0) + 1;
       stats.songs = current;
+
       if (metadata.artist) artists.add(metadata.artist);
       if (metadata.album) albums.add(metadata.album);
       if (metadata.coverPath) stats.coverCount++;
-      if (metadata.lyrics || metadata.lyricsPath) stats.lyricsCount++;
+
+      const lyrics = metadata.lyrics;
+      if (lyrics?.embedded?.exists) stats.lyrics.embedded++;
+      if (lyrics?.external?.exists) stats.lyrics.external++;
+      if (!lyrics?.exists) stats.lyrics.missing++;
+
+      stats.lyricsCount = stats.lyrics.embedded + stats.lyrics.external;
+      stats.missingLyrics = stats.lyrics.missing;
 
       try {
         stats.totalSize += (await fs.stat(file)).size;
@@ -102,13 +103,11 @@ export class FolderScanner {
 
       stats.artists = artists.size;
       stats.albums = albums.size;
-      stats.missingLyrics = stats.songs - stats.lyricsCount;
 
-      onProgress?.({ phase: "metadata", current, total: files.length, file, stats: { ...stats } });
+      onProgress?.({ phase: "metadata", current, total: files.length, file, stats: { ...stats, lyrics: { ...stats.lyrics } } });
     }
 
     onProgress?.({ phase: "index", current: files.length, total: files.length, file: "", stats });
-
     return results;
   }
 
@@ -120,9 +119,7 @@ export class FolderScanner {
       const fullPath = path.join(folderPath, entry.name);
       if (entry.isDirectory()) {
         result.push(...(await this.collectAudioFiles(fullPath)));
-        continue;
-      }
-      if (AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+      } else if (AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
         result.push(fullPath);
       }
     }
