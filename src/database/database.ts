@@ -36,7 +36,7 @@ export function getDatabase() {
       lyrics_type TEXT,
       lyrics_path TEXT,
       embedded_lyrics TEXT,
-      cover_data_url TEXT,
+      cover_path TEXT,
       cover_exist INTEGER DEFAULT 0,
       file_hash TEXT,
       last_scan_time INTEGER
@@ -48,7 +48,7 @@ export function getDatabase() {
   addColumnIfMissing(db, "sample_rate", "INTEGER");
   addColumnIfMissing(db, "lyrics_path", "TEXT");
   addColumnIfMissing(db, "embedded_lyrics", "TEXT");
-  addColumnIfMissing(db, "cover_data_url", "TEXT");
+  addColumnIfMissing(db, "cover_path", "TEXT");
 
   return db;
 }
