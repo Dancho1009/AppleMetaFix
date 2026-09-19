@@ -98,14 +98,18 @@ export function upsertSong(song: CachedSong) {
     cover_exist: song.cover_exist ? 1 : 0,
     last_scan_time: Date.now(),
   });
+
+  console.log("[DB Cover Save]", {
+    path: song.path,
+    exists: !!song.cover_data_url,
+    length: song.cover_data_url?.length ?? 0,
+  });
 }
 
 function mapSongDetail(row: any): SongDetail | undefined {
-  if (!row) {
-    return undefined;
-  }
+  if (!row) return undefined;
 
-  return {
+  const detail = {
     path: row.path,
     filename: row.filename,
     title: row.title,
@@ -125,6 +129,14 @@ function mapSongDetail(row: any): SongDetail | undefined {
     coverDataUrl: row.cover_data_url,
     coverExist: Boolean(row.cover_exist),
   };
+
+  console.log("[DB Cover Load]", {
+    path: detail.path,
+    exists: !!detail.coverDataUrl,
+    length: detail.coverDataUrl?.length ?? 0,
+  });
+
+  return detail;
 }
 
 export function getSongs() {
