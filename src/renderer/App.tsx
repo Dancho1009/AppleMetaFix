@@ -15,7 +15,6 @@ interface SongItem {
   album?: string;
   duration?: number;
   year?: number;
-  genre?: string;
   cover?: string | boolean;
   lyrics?: LyricsInfo;
   quality?: {
@@ -38,9 +37,7 @@ function getMetadataStatus(song: SongItem) {
   if (!song.album) missing.push("专辑");
   if (!song.cover) missing.push("封面");
   if (!song.lyrics?.exists) missing.push("歌词");
-
-  if (missing.length === 0) return "完整";
-  return `缺少: ${missing.join("、")}`;
+  return missing.length === 0 ? "完整" : `缺少: ${missing.join("、")}`;
 }
 
 export default function App() {
@@ -53,15 +50,16 @@ export default function App() {
 
   const handleSelectFolder = async () => {
     try {
-      if (!window.appleMetaFix) {
+      const api = window.appleMetaFix;
+      if (!api) {
         setStatus("错误：Electron preload 未加载");
         return;
       }
-      const selectedFolder = await window.appleMetaFix.selectFolder();
+      const selectedFolder = await api.selectFolder();
       if (!selectedFolder) return;
       setFolder(selectedFolder);
       setStatus("正在扫描音乐库...");
-      const result = await window.appleMetaFix.scanFolder(selectedFolder);
+      const result = await api.scanFolder(selectedFolder);
       setSongs(result || []);
       setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
     } catch (error) {
@@ -91,43 +89,46 @@ export default function App() {
         <p>{status}</p>
       </section>
 
-      <section className="card song-card">
-        <div className="table-header">
-          <h2>歌曲列表 ({filteredSongs.length})</h2>
-          <div className="filters">
-            <input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-              <option>全部</option><option value=".flac">.flac</option><option value=".mp3">.mp3</option><option value=".m4a">.m4a</option>
-            </select>
+      <div className="workspace">
+        <section className="card song-card">
+          <div className="table-header">
+            <h2>歌曲列表 ({filteredSongs.length})</h2>
+            <div className="filters">
+              <input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+              <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+                <option>全部</option><option value=".flac">.flac</option><option value=".mp3">.mp3</option><option value=".m4a">.m4a</option>
+              </select>
+            </div>
           </div>
-        </div>
-        <div className="table-container large-table">
-          <table>
-            <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>年份</th><th>格式</th><th>时长</th><th>标签状态</th></tr></thead>
-            <tbody>{filteredSongs.map((song) => (
-              <tr key={song.path} onClick={() => setSelectedSong(song)}>
-                <td title={song.title}>{song.title || "-"}</td>
-                <td>{song.artist || "-"}</td>
-                <td>{song.album || "-"}</td>
-                <td>{song.year || "-"}</td>
-                <td>{song.path.split(".").pop()?.toUpperCase()}</td>
-                <td>{formatDuration(song.duration)}</td>
-                <td>{getMetadataStatus(song)}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      </section>
+          <div className="table-container large-table">
+            <table>
+              <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>年份</th><th>格式</th><th>时长</th><th>标签状态</th></tr></thead>
+              <tbody>{filteredSongs.map((song) => (
+                <tr className={selectedSong?.path === song.path ? "selected-row" : ""} key={song.path} onClick={() => setSelectedSong(song)}>
+                  <td>{song.title || "-"}</td><td>{song.artist || "-"}</td><td>{song.album || "-"}</td>
+                  <td>{song.year || "-"}</td><td>{song.path.split(".").pop()?.toUpperCase()}</td>
+                  <td>{formatDuration(song.duration)}</td><td>{getMetadataStatus(song)}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </section>
 
-      {selectedSong && <aside className="card detail-panel">
-        <h2>歌曲详情</h2>
-        <p><b>标题：</b>{selectedSong.title || "-"}</p>
-        <p><b>艺术家：</b>{selectedSong.artist || "-"}</p>
-        <p><b>专辑：</b>{selectedSong.album || "-"}</p>
-        <p><b>标签评分：</b>{selectedSong.quality?.score ?? "待分析"}</p>
-        <p><b>歌词：</b>{selectedSong.lyrics?.type === "external" ? "外置 LRC" : selectedSong.lyrics?.type === "embedded" ? "内嵌歌词" : "无歌词"}</p>
-        <p><b>路径：</b>{selectedSong.path}</p>
-      </aside>}
+        {selectedSong && <aside className="card detail-panel">
+          <h2>歌曲详情</h2>
+          <div className="cover-placeholder">{selectedSong.cover ? "封面已存在" : "暂无封面"}</div>
+          <p><b>标题：</b>{selectedSong.title || "-"}</p>
+          <p><b>艺术家：</b>{selectedSong.artist || "-"}</p>
+          <p><b>专辑：</b>{selectedSong.album || "-"}</p>
+          <p><b>歌词：</b>{selectedSong.lyrics?.type === "external" ? "外置 LRC" : selectedSong.lyrics?.type === "embedded" ? "内嵌歌词" : "无歌词"}</p>
+          <p><b>标签评分：</b>{selectedSong.quality?.score ?? "待分析"}/100</p>
+          {selectedSong.quality?.missing?.length ? <p><b>缺失：</b>{selectedSong.quality.missing.join("、")}</p> : null}
+          <p className="detail-path"><b>路径：</b>{selectedSong.path}</p>
+          <button>打开文件夹</button>
+          <button>打开歌词文件</button>
+          <button>匹配 Apple Music</button>
+        </aside>}
+      </div>
     </main>
   );
 }
