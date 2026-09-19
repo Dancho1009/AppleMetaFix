@@ -3,6 +3,25 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { registerIPCHandlers } from './ipc';
 
+// 保存需要退出时清理的后台任务
+const cleanupTasks: Array<() => void | Promise<void>> = [];
+
+export function registerCleanupTask(task: () => void | Promise<void>) {
+  cleanupTasks.push(task);
+}
+
+async function cleanupBeforeExit() {
+  console.log('[App] cleanup before exit');
+
+  for (const task of cleanupTasks.reverse()) {
+    try {
+      await task();
+    } catch (error) {
+      console.error('[App] cleanup failed:', error);
+    }
+  }
+}
+
 function setupElectronCache() {
   // 将 Electron Chromium 缓存放到启动目录同级 cache 文件夹
   // 避免 Windows 用户目录权限问题导致启动时刷缓存错误
@@ -60,6 +79,16 @@ app.whenReady().then(() => {
   createWindow();
 });
 
+// Windows/Linux 关闭窗口时完全退出
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// 确保退出前释放后台任务、扫描任务等资源
+app.on('before-quit', async (event) => {
+  if (cleanupTasks.length > 0) {
+    event.preventDefault();
+    await cleanupBeforeExit();
+    app.exit(0);
+  }
 });
