@@ -13,6 +13,7 @@ interface SongItem {
 }
 
 function resolveCover(song:SongItem){
+ if(song.coverDataUrl?.startsWith("data:image")) return song.coverDataUrl;
  const cover=song.coverPath||song.cover_path;
  if(!cover)return "";
  return `file:///${encodeURI(cover.replace(/\\/g,"/"))}`;
@@ -27,9 +28,11 @@ function getLyricsLabel(song:SongItem){
 
 function DetailPanel({song,onClose}:{song:SongItem;onClose:()=>void}){
  const api:any=window.appleMetaFix;
+ const cover=resolveCover(song);
  return <aside className="card detail-panel">
   <button onClick={onClose}>关闭</button>
-  {resolveCover(song)&&<img className="detail-cover" src={resolveCover(song)} />}
+  {cover&&<img className="detail-cover" src={cover} alt="cover"/>}
+  {!cover&&<div className="cover-empty">暂无封面</div>}
   <h3>{song.title}</h3>
   <p>艺术家：{song.artist}</p>
   <p>专辑：{song.album}</p>
@@ -50,18 +53,21 @@ export default function App(){
  const [dashboard,setDashboard]=useState<LibraryStats|null>(null);
 
  useEffect(()=>{
-  api.onScanProgress((progress:any)=>setScanProgress(progress));
+  const handler=(progress:any)=>{
+   setScanProgress(progress);
+   if(progress.stats)setDashboard(progress.stats);
+  };
+  api.onScanProgress(handler);
  },[]);
 
  const selectFolder=async()=>{
   const dir=await api.selectFolder();
   if(!dir)return;
   setFolder(dir);
+  setDashboard(null);
   setScanProgress({phase:"collect",current:0,total:0});
   const result=await api.scanFolder(dir)||[];
   setSongs(result);
-  const stats=scanProgress?.stats;
-  if(stats)setDashboard(stats);
  };
 
  const filtered=useMemo(()=>songs.filter(s=>`${s.title}${s.artist}${s.album}`.toLowerCase().includes(keyword.toLowerCase())),[songs,keyword]);
@@ -69,16 +75,13 @@ export default function App(){
  return <main className="app-container">
   <h1>AppleMetaFix</h1>
   <section className="card folder-bar"><button onClick={selectFolder}>选择音乐文件夹</button><span>{folder}</span></section>
-
-  {scanProgress&&<section className="card">
+  {scanProgress&&<section className="card scan-card">
     <h2>扫描状态</h2>
     <p>阶段：{scanProgress.phase}</p>
     <p>{scanProgress.current || 0} / {scanProgress.total || 0}</p>
     <p>{scanProgress.file || ""}</p>
   </section>}
-
   <MusicDashboard stats={dashboard || scanProgress?.stats} />
-
   <div className="music-layout">
    <section className="card song-card">
     <input className="search-box" placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={e=>setKeyword(e.target.value)}/>
