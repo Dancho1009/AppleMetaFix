@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./app.css";
 
 interface SongItem {
   path: string;
@@ -12,12 +13,8 @@ interface SongItem {
 
 function formatDuration(seconds?: number) {
   if (!seconds) return "-";
-
   const min = Math.floor(seconds / 60);
-  const sec = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-
+  const sec = Math.floor(seconds % 60).toString().padStart(2, "0");
   return `${min}:${sec}`;
 }
 
@@ -34,7 +31,6 @@ export default function App() {
       }
 
       setStatus("正在打开文件夹选择窗口...");
-
       const selectedFolder = await window.appleMetaFix.selectFolder();
 
       if (!selectedFolder) {
@@ -55,46 +51,72 @@ export default function App() {
   };
 
   return (
-    <main style={{ padding: 32, fontFamily: "sans-serif" }}>
-      <h1>AppleMetaFix</h1>
-      <p>Apple Music 元数据增强工具</p>
+    <main className="app-container">
+      <header className="header">
+        <h1>AppleMetaFix</h1>
+        <p className="subtitle">Apple Music 元数据增强工具</p>
+      </header>
 
-      <button onClick={handleSelectFolder}>选择音乐文件夹</button>
-      <p>{folder || "未选择文件夹"}</p>
+      <section className="card">
+        <div className="toolbar">
+          <button onClick={handleSelectFolder}>选择音乐文件夹</button>
+        </div>
+        <div className="path">{folder || "未选择文件夹"}</div>
+      </section>
 
-      <section style={{ marginTop: 24 }}>
+      <section className="card">
         <h2>扫描状态</h2>
         <p>{status}</p>
       </section>
 
-      <section style={{ marginTop: 24 }}>
+      <section className="card">
+        <h2>音乐库统计</h2>
+        <div className="stats">
+          <div className="stat">
+            <div className="stat-number">{songs.length}</div>
+            <div>歌曲总数</div>
+          </div>
+          <div className="stat">
+            <div className="stat-number">0</div>
+            <div>已匹配</div>
+          </div>
+          <div className="stat">
+            <div className="stat-number">{songs.length}</div>
+            <div>待匹配</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card">
         <h2>歌曲列表</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th>标题</th>
-              <th>艺术家</th>
-              <th>专辑</th>
-              <th>年份</th>
-              <th>类型</th>
-              <th>时长</th>
-              <th>路径</th>
-            </tr>
-          </thead>
-          <tbody>
-            {songs.map((song) => (
-              <tr key={song.path}>
-                <td>{song.title || "-"}</td>
-                <td>{song.artist || "-"}</td>
-                <td>{song.album || "-"}</td>
-                <td>{song.year || "-"}</td>
-                <td>{song.genre || "-"}</td>
-                <td>{formatDuration(song.duration)}</td>
-                <td>{song.path}</td>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>标题</th>
+                <th>艺术家</th>
+                <th>专辑</th>
+                <th>年份</th>
+                <th>类型</th>
+                <th>时长</th>
+                <th>路径</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {songs.map((song) => (
+                <tr key={song.path}>
+                  <td title={song.title}>{song.title || "-"}</td>
+                  <td title={song.artist}>{song.artist || "-"}</td>
+                  <td title={song.album}>{song.album || "-"}</td>
+                  <td>{song.year || "-"}</td>
+                  <td>{song.genre || "-"}</td>
+                  <td>{formatDuration(song.duration)}</td>
+                  <td title={song.path}>{song.path}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
   );
