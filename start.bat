@@ -6,7 +6,7 @@ cd /d %~dp0
 
 echo =====================================
 echo AppleMetaFix Launcher
- echo =====================================
+echo =====================================
 
 echo [1/5] Checking Node.js...
 where node >nul 2>&1
@@ -24,7 +24,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-npm -v
+call npm -v
 
 echo [3/5] Checking electron-vite...
 if not exist "node_modules\.bin\electron-vite.cmd" (
@@ -49,7 +49,7 @@ if errorlevel 1 (
     )
 )
 
- echo [5/5] Starting development environment...
+echo [5/5] Starting development environment...
 call npm run dev
 
 pause
