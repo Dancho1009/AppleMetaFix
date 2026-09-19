@@ -10,12 +10,7 @@
     "start": "electron .",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "music",
-    "metadata",
-    "apple-music",
-    "electron"
-  ],
+  "keywords": ["music", "metadata", "apple-music", "electron"],
   "license": "MIT",
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.4",
@@ -26,6 +21,7 @@
     "vite": "^7.3.6"
   },
   "dependencies": {
+    "better-sqlite3": "latest",
     "music-metadata": "latest",
     "react": "latest",
     "react-dom": "latest"
