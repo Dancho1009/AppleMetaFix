@@ -12,8 +12,10 @@ function createWindow() {
     },
   });
 
-  if (process.env.VITE_DEV_SERVER_URL) {
-    window.loadURL(process.env.VITE_DEV_SERVER_URL);
+  const rendererUrl = process.env.ELECTRON_RENDERER_URL;
+
+  if (rendererUrl) {
+    window.loadURL(rendererUrl);
   } else {
     window.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
