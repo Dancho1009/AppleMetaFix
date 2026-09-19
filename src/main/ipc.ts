@@ -1,4 +1,5 @@
 import { dialog, ipcMain, shell } from "electron";
+import path from "node:path";
 import { FolderScanner } from "../scanner/FolderScanner";
 
 const folderScanner = new FolderScanner();
@@ -36,8 +37,25 @@ export function registerIPCHandlers() {
         return false;
       }
 
-      shell.showItemInFolder(filePath);
-      logIPC("open-file-location success");
+      // UNC/NAS 路径下 showItemInFolder 可能无响应
+      // 优先尝试定位文件，失败后打开所在目录
+      try {
+        shell.showItemInFolder(filePath);
+        logIPC("open-file-location showItemInFolder success");
+        return true;
+      } catch (error) {
+        console.warn("[IPC] showItemInFolder failed, fallback:", error);
+      }
+
+      const folderPath = path.dirname(filePath);
+      const result = await shell.openPath(folderPath);
+
+      if (result !== "") {
+        console.error("[IPC] 打开文件夹失败:", result);
+        return false;
+      }
+
+      logIPC("open-file-location fallback success", folderPath);
       return true;
     } catch (error) {
       console.error("[IPC] 打开文件位置失败:", error);
