@@ -6,29 +6,39 @@ body {
   margin: 0;
   background: #f5f7fb;
   color: #111827;
-  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+  font-size: 14px;
 }
 
 .app-container {
-  padding: 24px;
+  padding: 18px;
+  max-width: 100%;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 32px;
+  font-size: 30px;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
+  margin: 5px 0 12px;
   color: #6b7280;
+  font-size: 15px;
 }
 
 .card {
-  background: white;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
-  margin-top: 16px;
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-top: 10px;
+  box-shadow: 0 2px 12px rgba(15,23,42,0.04);
+}
+
+.card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
 }
 
 button {
@@ -36,7 +46,8 @@ button {
   color: white;
   border: 0;
   border-radius: 8px;
-  padding: 10px 18px;
+  padding: 8px 16px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -45,10 +56,10 @@ button:hover {
 }
 
 .path {
-  margin-top: 12px;
-  padding: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
   background: #f3f4f6;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -56,71 +67,65 @@ button:hover {
 
 .stats {
   display: flex;
-  gap: 16px;
+  gap: 10px;
 }
 
 .stat {
   flex: 1;
-  padding: 16px;
-  border-radius: 10px;
-  background: #f9fafb;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f8fafc;
 }
 
 .stat-number {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
 }
 
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
-
+.table-header,
 .filters {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 input,
 select {
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
 }
 
 .song-card {
-  min-height: calc(100vh - 260px);
+  min-height: calc(100vh - 220px);
 }
 
-.table-container {
-  overflow: auto;
-}
-
+.table-container,
 .large-table {
-  height: calc(100vh - 430px);
-  min-height: 500px;
+  height: calc(100vh - 340px);
+  min-height: 520px;
+  overflow: auto;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 th {
   position: sticky;
   top: 0;
-  background: #f9fafb;
+  z-index: 2;
+  background: #f8fafc;
+  padding: 10px;
   text-align: left;
-  padding: 12px;
   border-bottom: 1px solid #e5e7eb;
 }
 
 td {
-  padding: 12px;
+  padding: 9px 10px;
   border-bottom: 1px solid #f0f0f0;
-  max-width: 260px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
