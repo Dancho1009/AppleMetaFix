@@ -17,7 +17,7 @@ export interface CachedSong {
   lyrics_type?: string;
   lyrics_path?: string;
   embedded_lyrics?: string;
-  cover_data_url?: string;
+  cover_path?: string;
   cover_exist?: boolean;
 }
 
@@ -38,7 +38,7 @@ export interface SongDetail {
   lyricsType?: string;
   lyricsPath?: string;
   embeddedLyrics?: string;
-  coverDataUrl?: string;
+  coverPath?: string;
   coverExist?: boolean;
 }
 
@@ -50,12 +50,12 @@ export function upsertSong(song: CachedSong) {
       path, filename, title, artist, album, album_artist, composer,
       genre, year, duration, format, bitrate, sample_rate,
       lyrics_type, lyrics_path, embedded_lyrics,
-      cover_data_url, cover_exist, last_scan_time
+      cover_path, cover_exist, last_scan_time
     ) VALUES (
       @path, @filename, @title, @artist, @album, @album_artist, @composer,
       @genre, @year, @duration, @format, @bitrate, @sample_rate,
       @lyrics_type, @lyrics_path, @embedded_lyrics,
-      @cover_data_url, @cover_exist, @last_scan_time
+      @cover_path, @cover_exist, @last_scan_time
     )
     ON CONFLICT(path) DO UPDATE SET
       title=excluded.title,
@@ -72,7 +72,7 @@ export function upsertSong(song: CachedSong) {
       lyrics_type=excluded.lyrics_type,
       lyrics_path=excluded.lyrics_path,
       embedded_lyrics=excluded.embedded_lyrics,
-      cover_data_url=excluded.cover_data_url,
+      cover_path=excluded.cover_path,
       cover_exist=excluded.cover_exist,
       last_scan_time=excluded.last_scan_time
   `);
@@ -94,22 +94,16 @@ export function upsertSong(song: CachedSong) {
     lyrics_type: song.lyrics_type ?? null,
     lyrics_path: song.lyrics_path ?? null,
     embedded_lyrics: song.embedded_lyrics ?? null,
-    cover_data_url: song.cover_data_url ?? null,
+    cover_path: song.cover_path ?? null,
     cover_exist: song.cover_exist ? 1 : 0,
     last_scan_time: Date.now(),
-  });
-
-  console.log("[DB Cover Save]", {
-    path: song.path,
-    exists: !!song.cover_data_url,
-    length: song.cover_data_url?.length ?? 0,
   });
 }
 
 function mapSongDetail(row: any): SongDetail | undefined {
   if (!row) return undefined;
 
-  const detail = {
+  return {
     path: row.path,
     filename: row.filename,
     title: row.title,
@@ -126,17 +120,9 @@ function mapSongDetail(row: any): SongDetail | undefined {
     lyricsType: row.lyrics_type,
     lyricsPath: row.lyrics_path,
     embeddedLyrics: row.embedded_lyrics,
-    coverDataUrl: row.cover_data_url,
+    coverPath: row.cover_path,
     coverExist: Boolean(row.cover_exist),
   };
-
-  console.log("[DB Cover Load]", {
-    path: detail.path,
-    exists: !!detail.coverDataUrl,
-    length: detail.coverDataUrl?.length ?? 0,
-  });
-
-  return detail;
 }
 
 export function getSongs() {
