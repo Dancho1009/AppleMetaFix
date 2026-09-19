@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
+import { registerIPCHandlers } from './ipc';
 
 function createWindow() {
   const window = new BrowserWindow({
@@ -7,6 +8,7 @@ function createWindow() {
     height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
     },
   });
 
@@ -14,5 +16,6 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  registerIPCHandlers();
   createWindow();
 });
