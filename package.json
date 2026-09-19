@@ -5,7 +5,8 @@
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "music",
@@ -17,6 +18,12 @@
   "devDependencies": {
     "electron": "latest",
     "electron-builder": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vite": "latest",
+    "@vitejs/plugin-react": "latest"
+  },
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest"
   }
 }
