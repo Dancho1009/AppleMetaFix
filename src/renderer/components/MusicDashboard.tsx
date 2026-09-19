@@ -28,6 +28,10 @@ function formatSize(size?: number) {
 export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
   if (!stats) return null;
 
+  const embedded = stats.lyrics?.embedded || 0;
+  const external = stats.lyrics?.external || 0;
+  const missing = Math.max(0, (stats.songs || 0) - embedded - external);
+
   return (
     <section className="card dashboard compact-dashboard">
       <div className="dashboard-header">
@@ -43,9 +47,9 @@ export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
           <span className="dashboard-tag" key={name}>{name} {count}</span>
         ))}
         <span className="dashboard-label lyrics-label">歌词</span>
-        <span className="dashboard-tag">内嵌 {stats.lyrics?.embedded || 0}</span>
-        <span className="dashboard-tag">LRC {stats.lyrics?.external || 0}</span>
-        <span className="dashboard-tag">缺失 {stats.lyrics?.missing || 0}</span>
+        <span className="dashboard-tag">内嵌 {embedded}</span>
+        <span className="dashboard-tag">LRC {external}</span>
+        <span className="dashboard-tag">缺失 {missing}</span>
       </div>
     </section>
   );
