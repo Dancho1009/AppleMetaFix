@@ -1,11 +1,16 @@
 import React, { useMemo, useState } from "react";
 import "./app.css";
 
-interface LyricsInfo {
+interface LyricsSource {
   exists: boolean;
-  type: "embedded" | "external" | "none";
-  format?: string;
   path?: string;
+  content?: string;
+  format?: string;
+}
+
+interface LyricsInfo {
+  embedded?: LyricsSource;
+  external?: LyricsSource;
 }
 
 interface SongItem {
@@ -18,27 +23,28 @@ interface SongItem {
   genre?: string;
   year?: number;
   coverDataUrl?: string;
-  cover?: string | boolean;
   lyrics?: LyricsInfo;
   lyricsPath?: string;
   format?: string;
-  duration?: number;
   bitrate?: number;
   sampleRate?: number;
 }
 
 function getLyricsLabel(song: SongItem) {
-  if (song.lyrics?.type === "embedded") return "内嵌歌词";
-  if (song.lyrics?.type === "external") return "外置歌词";
-  return "无歌词";
+  const result = [];
+  if (song.lyrics?.embedded?.exists) result.push("内嵌歌词");
+  if (song.lyrics?.external?.exists || song.lyricsPath) result.push("外置歌词");
+  return result.length ? result.join(" + ") : "无歌词";
 }
 
 function DetailPanel({ song }: { song: SongItem }) {
   const api: any = window.appleMetaFix;
+  const [showLyrics, setShowLyrics] = useState(false);
+
+  const lyrics = song.lyrics?.embedded?.content || song.lyrics?.external?.content || "暂无歌词内容";
 
   return <aside className="card detail-panel">
     <h2>歌曲详情</h2>
-
     <div className="detail-cover">
       {song.coverDataUrl ? <img src={song.coverDataUrl} /> : "暂无封面"}
     </div>
@@ -68,9 +74,9 @@ function DetailPanel({ song }: { song: SongItem }) {
     <section>
       <h3>歌词</h3>
       <p>{getLyricsLabel(song)}</p>
-      {song.lyricsPath && (
-        <button onClick={() => api.openLyricsFile(song.lyricsPath)}>打开歌词文件</button>
-      )}
+      <button onClick={() => setShowLyrics(!showLyrics)}>{showLyrics ? "收起歌词" : "查看歌词"}</button>
+      {song.lyricsPath && <button onClick={() => api.openLyricsFile(song.lyricsPath)}>打开歌词文件</button>}
+      {showLyrics && <pre className="lyrics-viewer">{lyrics}</pre>}
     </section>
 
     <section>
@@ -82,18 +88,17 @@ function DetailPanel({ song }: { song: SongItem }) {
 }
 
 export default function App() {
+  const api: any = window.appleMetaFix;
   const [folder, setFolder] = useState("");
   const [songs, setSongs] = useState<SongItem[]>([]);
   const [keyword, setKeyword] = useState("");
   const [selectedSong, setSelectedSong] = useState<SongItem | null>(null);
   const [status, setStatus] = useState("等待扫描音乐库...");
-  const api: any = window.appleMetaFix;
 
   const selectFolder = async () => {
     const dir = await api.selectFolder();
     if (!dir) return;
     setFolder(dir);
-    setStatus("正在扫描音乐库...");
     const result = await api.scanFolder(dir);
     setSongs(result || []);
     setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
@@ -104,7 +109,6 @@ export default function App() {
       setSelectedSong(null);
       return;
     }
-
     try {
       const detail = await api.getSongDetail(song.path);
       setSelectedSong({ ...song, ...(detail || {}) });
@@ -113,50 +117,19 @@ export default function App() {
     }
   };
 
-  const filtered = useMemo(
-    () => songs.filter(s => `${s.title} ${s.artist} ${s.album} ${s.genre}`.toLowerCase().includes(keyword.toLowerCase())),
-    [songs, keyword]
-  );
+  const filtered = useMemo(() => songs.filter(s => `${s.title}${s.artist}${s.album}`.toLowerCase().includes(keyword.toLowerCase())), [songs, keyword]);
 
   return <main className="app-container">
-    <header className="header compact-header">
-      <h1>AppleMetaFix</h1>
-      <p>Apple Music 元数据增强工具</p>
-    </header>
-
-    <section className="card toolbar-card">
-      <button onClick={selectFolder}>选择音乐文件夹</button>
-      <span>{folder || "未选择文件夹"}</span>
-    </section>
-
+    <h1>AppleMetaFix</h1>
+    <p>Apple Music 元数据增强工具</p>
+    <section className="card"><button onClick={selectFolder}>选择音乐文件夹</button>{folder}</section>
     <div className="music-layout">
       <section className="card song-card">
-        <div className="table-header">
-          <h2>歌曲列表 ({filtered.length})</h2>
-          <input placeholder="搜索歌曲、艺术家、专辑、流派" value={keyword} onChange={e => setKeyword(e.target.value)} />
-        </div>
-        <div className="table-container large-table">
-          <table>
-            <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>年份</th><th>歌词</th></tr></thead>
-            <tbody>
-              {filtered.map(song => (
-                <tr key={song.path} className={selectedSong?.path === song.path ? "selected-row" : ""} onClick={() => selectSong(song)}>
-                  <td>{song.title || "-"}</td>
-                  <td>{song.artist || "-"}</td>
-                  <td>{song.album || "-"}</td>
-                  <td>{song.genre || "-"}</td>
-                  <td>{song.year || "-"}</td>
-                  <td>{getLyricsLabel(song)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={e => setKeyword(e.target.value)} />
+        <table><thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>歌词</th></tr></thead><tbody>{filtered.map(song => <tr key={song.path} className={selectedSong?.path === song.path ? "selected-row" : ""} onClick={() => selectSong(song)}><td>{song.title}</td><td>{song.artist}</td><td>{song.album}</td><td>{getLyricsLabel(song)}</td></tr>)}</tbody></table>
       </section>
-
       {selectedSong && <DetailPanel song={selectedSong} />}
     </div>
-
     <p>{status}</p>
   </main>;
 }
