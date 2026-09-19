@@ -21,6 +21,27 @@ export interface CachedSong {
   cover_exist?: boolean;
 }
 
+export interface SongDetail {
+  path: string;
+  filename: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+  albumArtist?: string;
+  composer?: string;
+  genre?: string;
+  year?: number;
+  duration?: number;
+  format?: string;
+  bitrate?: number;
+  sampleRate?: number;
+  lyricsType?: string;
+  lyricsPath?: string;
+  embeddedLyrics?: string;
+  coverDataUrl?: string;
+  coverExist?: boolean;
+}
+
 export function upsertSong(song: CachedSong) {
   const db = getDatabase();
 
@@ -79,12 +100,41 @@ export function upsertSong(song: CachedSong) {
   });
 }
 
+function mapSongDetail(row: any): SongDetail | undefined {
+  if (!row) {
+    return undefined;
+  }
+
+  return {
+    path: row.path,
+    filename: row.filename,
+    title: row.title,
+    artist: row.artist,
+    album: row.album,
+    albumArtist: row.album_artist,
+    composer: row.composer,
+    genre: row.genre,
+    year: row.year,
+    duration: row.duration,
+    format: row.format,
+    bitrate: row.bitrate,
+    sampleRate: row.sample_rate,
+    lyricsType: row.lyrics_type,
+    lyricsPath: row.lyrics_path,
+    embeddedLyrics: row.embedded_lyrics,
+    coverDataUrl: row.cover_data_url,
+    coverExist: Boolean(row.cover_exist),
+  };
+}
+
 export function getSongs() {
   return getDatabase().prepare("SELECT * FROM songs ORDER BY id DESC").all();
 }
 
-export function getSongByPath(filePath: string) {
-  return getDatabase()
+export function getSongByPath(filePath: string): SongDetail | undefined {
+  const row = getDatabase()
     .prepare("SELECT * FROM songs WHERE path = ? LIMIT 1")
     .get(filePath);
+
+  return mapSongDetail(row);
 }
