@@ -6,6 +6,11 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
   },
   preload: {
+    build: {
+      rollupOptions: {
+        input: 'src/main/preload.ts',
+      },
+    },
     plugins: [externalizeDepsPlugin()],
   },
   renderer: {
