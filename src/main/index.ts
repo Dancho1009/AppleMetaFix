@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { registerIPCHandlers } from './ipc';
 
 // 保存需要退出时清理的后台任务
@@ -27,7 +27,14 @@ function setupElectronCache() {
   // 避免 Windows 用户目录权限问题导致启动时刷缓存错误
   const cachePath = path.join(process.cwd(), 'cache');
 
+  if (!existsSync(cachePath)) {
+    mkdirSync(cachePath, { recursive: true });
+  }
+
   app.setPath('cache', cachePath);
+
+  // 禁止 GPU shader disk cache，避免 Windows 下缓存文件锁定或权限异常
+  app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 
   console.log('Electron cache:', cachePath);
 }
