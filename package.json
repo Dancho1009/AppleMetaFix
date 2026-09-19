@@ -8,7 +8,8 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "start": "electron .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "electron-builder install-app-deps"
   },
   "keywords": ["music", "metadata", "apple-music", "electron"],
   "license": "MIT",
