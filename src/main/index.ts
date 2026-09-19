@@ -3,6 +3,16 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { registerIPCHandlers } from './ipc';
 
+function setupElectronCache() {
+  // 将 Electron Chromium 缓存放到启动目录同级 cache 文件夹
+  // 避免 Windows 用户目录权限问题导致启动时刷缓存错误
+  const cachePath = path.join(process.cwd(), 'cache');
+
+  app.setPath('cache', cachePath);
+
+  console.log('Electron cache:', cachePath);
+}
+
 function getPreloadPath() {
   const candidates = [
     path.join(__dirname, '../preload/index.js'),
@@ -45,6 +55,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  setupElectronCache();
   registerIPCHandlers();
   createWindow();
 });
