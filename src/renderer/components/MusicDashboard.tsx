@@ -6,6 +6,10 @@ export interface LibraryStats {
   albums?: number;
   totalSize?: number;
   formats?: Record<string, number>;
+  cover?: {
+    exists?: number;
+    missing?: number;
+  };
   lyrics?: {
     embedded?: number;
     external?: number;
@@ -31,6 +35,7 @@ export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
   const embedded = stats.lyrics?.embedded || 0;
   const external = stats.lyrics?.external || 0;
   const missing = stats.lyrics?.missing || 0;
+  const coverExists = stats.cover?.exists || 0;
 
   return (
     <section className="card dashboard compact-dashboard">
@@ -49,6 +54,8 @@ export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
         {Object.entries(stats.formats || {}).map(([name, count]) => (
           <span className="dashboard-tag" key={name}>{name} {count}</span>
         ))}
+        <span className="dashboard-label" style={{ marginLeft: "12px" }}>封面</span>
+        <span className="dashboard-tag">{coverExists}/{stats.songs || 0}</span>
         <span className="dashboard-label lyrics-label" style={{ marginLeft: "12px" }}>歌词</span>
         <span className="dashboard-tag">内嵌 {embedded}</span>
         <span className="dashboard-tag">LRC {external}</span>
