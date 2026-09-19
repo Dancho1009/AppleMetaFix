@@ -1,134 +1,65 @@
 import React, { useMemo, useState } from "react";
 import "./app.css";
 
-interface LyricsInfo {
-  exists: boolean;
-  type: "embedded" | "external" | "none";
-  format?: string;
-  path?: string;
-}
-
+interface LyricsInfo { exists:boolean; type:"embedded"|"external"|"none"; format?:string; path?:string; }
 interface SongItem {
-  path: string;
-  title?: string;
-  artist?: string;
-  album?: string;
-  duration?: number;
-  year?: number;
-  cover?: string | boolean;
-  lyrics?: LyricsInfo;
-  quality?: {
-    score: number;
-    missing: string[];
-  };
+ path:string; title?:string; artist?:string; album?:string; duration?:number; year?:number;
+ cover?:string|boolean; lyrics?:LyricsInfo;
+ quality?:{score:number; missing:string[]};
 }
 
-function formatDuration(seconds?: number) {
-  if (!seconds) return "-";
-  const min = Math.floor(seconds / 60);
-  const sec = Math.floor(seconds % 60).toString().padStart(2, "0");
-  return `${min}:${sec}`;
+function formatDuration(seconds?:number){
+ if(!seconds) return "-";
+ return `${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,"0")}`;
 }
 
-function getMetadataStatus(song: SongItem) {
-  const missing: string[] = [];
-  if (!song.title) missing.push("标题");
-  if (!song.artist) missing.push("艺术家");
-  if (!song.album) missing.push("专辑");
-  if (!song.cover) missing.push("封面");
-  if (!song.lyrics?.exists) missing.push("歌词");
-  return missing.length === 0 ? "完整" : `缺少: ${missing.join("、")}`;
+function getMetadataStatus(song:SongItem){
+ const missing=[];
+ if(!song.title) missing.push("标题");
+ if(!song.artist) missing.push("艺术家");
+ if(!song.album) missing.push("专辑");
+ if(!song.cover) missing.push("封面");
+ if(!song.lyrics?.exists) missing.push("歌词");
+ return missing.length ? `缺少: ${missing.join("、")}` : "完整";
 }
 
-export default function App() {
-  const [status, setStatus] = useState("等待扫描音乐库...");
-  const [folder, setFolder] = useState("");
-  const [songs, setSongs] = useState<SongItem[]>([]);
-  const [keyword, setKeyword] = useState("");
-  const [filter, setFilter] = useState("全部");
-  const [selectedSong, setSelectedSong] = useState<SongItem | null>(null);
+export default function App(){
+ const [status,setStatus]=useState("等待扫描音乐库...");
+ const [folder,setFolder]=useState("");
+ const [songs,setSongs]=useState<SongItem[]>([]);
+ const [keyword,setKeyword]=useState("");
+ const [filter,setFilter]=useState("全部");
+ const [selectedSong,setSelectedSong]=useState<SongItem|null>(null);
+ const [selected,setSelected]=useState<string[]>([]);
 
-  const handleSelectFolder = async () => {
-    try {
-      const api = window.appleMetaFix;
-      if (!api) {
-        setStatus("错误：Electron preload 未加载");
-        return;
-      }
-      const selectedFolder = await api.selectFolder();
-      if (!selectedFolder) return;
-      setFolder(selectedFolder);
-      setStatus("正在扫描音乐库...");
-      const result = await api.scanFolder(selectedFolder);
-      setSongs(result || []);
-      setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
-    } catch (error) {
-      setStatus(`选择文件夹失败: ${String(error)}`);
-    }
-  };
+ const api=window.appleMetaFix;
+ const selectFolder=async()=>{
+  if(!api){setStatus("错误：Electron preload 未加载");return;}
+  const dir=await api.selectFolder();
+  if(!dir)return;
+  setFolder(dir);setStatus("正在扫描音乐库...");
+  const result=await api.scanFolder(dir);
+  setSongs(result||[]);setStatus(`扫描完成，共发现 ${result?.length||0} 首歌曲`);
+ };
 
-  const filteredSongs = useMemo(() => songs.filter((song) => {
-    const text = `${song.title || ""} ${song.artist || ""} ${song.album || ""}`.toLowerCase();
-    return text.includes(keyword.toLowerCase()) && (filter === "全部" || song.path.toLowerCase().endsWith(filter));
-  }), [songs, keyword, filter]);
+ const filtered=useMemo(()=>songs.filter(s=>{
+  const text=`${s.title||""} ${s.artist||""} ${s.album||""}`.toLowerCase();
+  return text.includes(keyword.toLowerCase())&&(filter==="全部"||s.path.toLowerCase().endsWith(filter));
+ }),[songs,keyword,filter]);
 
-  return (
-    <main className="app-container">
-      <header className="header compact-header">
-        <h1>AppleMetaFix</h1>
-        <p className="subtitle">Apple Music 元数据增强工具</p>
-      </header>
+ const toggle=(path:string)=>setSelected(v=>v.includes(path)?v.filter(x=>x!==path):[...v,path]);
 
-      <section className="card toolbar-card">
-        <button onClick={handleSelectFolder}>选择音乐文件夹</button>
-        <div className="path">{folder || "未选择文件夹"}</div>
-      </section>
-
-      <section className="card status-card compact-card">
-        <h2>扫描状态</h2>
-        <p>{status}</p>
-      </section>
-
-      <div className="workspace">
-        <section className="card song-card">
-          <div className="table-header">
-            <h2>歌曲列表 ({filteredSongs.length})</h2>
-            <div className="filters">
-              <input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-              <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-                <option>全部</option><option value=".flac">.flac</option><option value=".mp3">.mp3</option><option value=".m4a">.m4a</option>
-              </select>
-            </div>
-          </div>
-          <div className="table-container large-table">
-            <table>
-              <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>年份</th><th>格式</th><th>时长</th><th>标签状态</th></tr></thead>
-              <tbody>{filteredSongs.map((song) => (
-                <tr className={selectedSong?.path === song.path ? "selected-row" : ""} key={song.path} onClick={() => setSelectedSong(song)}>
-                  <td>{song.title || "-"}</td><td>{song.artist || "-"}</td><td>{song.album || "-"}</td>
-                  <td>{song.year || "-"}</td><td>{song.path.split(".").pop()?.toUpperCase()}</td>
-                  <td>{formatDuration(song.duration)}</td><td>{getMetadataStatus(song)}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        </section>
-
-        {selectedSong && <aside className="card detail-panel">
-          <h2>歌曲详情</h2>
-          <div className="cover-placeholder">{selectedSong.cover ? "封面已存在" : "暂无封面"}</div>
-          <p><b>标题：</b>{selectedSong.title || "-"}</p>
-          <p><b>艺术家：</b>{selectedSong.artist || "-"}</p>
-          <p><b>专辑：</b>{selectedSong.album || "-"}</p>
-          <p><b>歌词：</b>{selectedSong.lyrics?.type === "external" ? "外置 LRC" : selectedSong.lyrics?.type === "embedded" ? "内嵌歌词" : "无歌词"}</p>
-          <p><b>标签评分：</b>{selectedSong.quality?.score ?? "待分析"}/100</p>
-          {selectedSong.quality?.missing?.length ? <p><b>缺失：</b>{selectedSong.quality.missing.join("、")}</p> : null}
-          <p className="detail-path"><b>路径：</b>{selectedSong.path}</p>
-          <button>打开文件夹</button>
-          <button>打开歌词文件</button>
-          <button>匹配 Apple Music</button>
-        </aside>}
-      </div>
-    </main>
-  );
+ return <main className="app-container">
+  <header className="header compact-header"><h1>AppleMetaFix</h1><p>Apple Music 元数据增强工具</p></header>
+  <section className="card toolbar-card"><button onClick={selectFolder}>选择音乐文件夹</button><span>{folder||"未选择文件夹"}</span></section>
+  <section className="card compact-card"><h2>扫描状态</h2><p>{status}</p></section>
+  <div className="workspace">
+   <section className="card song-card">
+    <div className="table-header"><h2>歌曲列表 ({filtered.length})</h2><input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={e=>setKeyword(e.target.value)}/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>全部</option><option value=".flac">FLAC</option><option value=".mp3">MP3</option><option value=".m4a">M4A</option></select></div>
+    <div>已选择 {selected.length} 首 <button>批量匹配</button><button>批量修复</button></div>
+    <div className="table-container large-table"><table><thead><tr><th></th><th>标题</th><th>艺术家</th><th>专辑</th><th>歌词</th><th>评分</th></tr></thead><tbody>{filtered.map(s=><tr className={selectedSong?.path===s.path?"selected-row":""} key={s.path} onClick={()=>setSelectedSong(s)}><td><input type="checkbox" checked={selected.includes(s.path)} onClick={e=>e.stopPropagation()} onChange={()=>toggle(s.path)}/></td><td>{s.title||"-"}</td><td>{s.artist||"-"}</td><td>{s.album||"-"}</td><td>{s.lyrics?.type||"none"}</td><td>{s.quality?.score??"-"}</td></tr>)}</tbody></table></div>
+   </section>
+   {selectedSong&&<aside className="card detail-panel"><h2>歌曲详情</h2><p><b>标题：</b>{selectedSong.title}</p><p><b>艺术家：</b>{selectedSong.artist}</p><p><b>专辑：</b>{selectedSong.album}</p><p><b>状态：</b>{getMetadataStatus(selectedSong)}</p><p><b>歌词：</b>{selectedSong.lyrics?.type||"none"}</p><p><b>标签评分：</b>{selectedSong.quality?.score??"待分析"}/100</p><button>打开文件夹</button><button>打开歌词文件</button><button>匹配 Apple Music</button></aside>}
+  </div>
+ </main>;
 }
