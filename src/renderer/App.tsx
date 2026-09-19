@@ -28,43 +28,34 @@ function getLyricsLabel(song: SongItem) {
 function DetailPanel({ song }: { song: SongItem }) {
   const api: any = window.appleMetaFix;
   const [showLyrics, setShowLyrics] = useState(false);
-
-  // 外置歌词优先，其次内嵌歌词
   const lyrics = song.lyrics?.external?.content || song.lyrics?.embedded?.content || song.embeddedLyrics || "暂无歌词内容";
   const cover = normalizeCover(song.coverDataUrl);
 
   return <aside className="card detail-panel">
     <h2>歌曲详情</h2>
-    <div className="detail-cover">
-      {cover ? <img src={cover} alt="cover" /> : "暂无封面"}
-    </div>
-
+    <div className="detail-cover">{cover ? <img src={cover} alt="cover" /> : "暂无封面"}</div>
     <section><h3>基础信息</h3>
       <p><b>标题：</b>{song.title || "-"}</p>
       <p><b>艺术家：</b>{song.artist || "-"}</p>
       <p><b>专辑：</b>{song.album || "-"}</p>
       <p><b>专辑艺术家：</b>{song.albumArtist || "-"}</p>
     </section>
-
     <section><h3>Metadata</h3>
       <p><b>作曲：</b>{song.composer || "-"}</p>
       <p><b>流派：</b>{song.genre || "-"}</p>
       <p><b>年份：</b>{song.year || "-"}</p>
     </section>
-
     <section><h3>音频信息</h3>
       <p><b>格式：</b>{song.format || "-"}</p>
       <p><b>码率：</b>{song.bitrate ? `${song.bitrate} kbps` : "-"}</p>
       <p><b>采样率：</b>{song.sampleRate ? `${song.sampleRate} Hz` : "-"}</p>
     </section>
-
     <section><h3>歌词</h3>
       <p>{getLyricsLabel(song)}</p>
       <button onClick={() => setShowLyrics(v => !v)}>{showLyrics ? "收起歌词" : "查看歌词"}</button>
       {song.lyricsPath && <button onClick={() => api.openLyricsFile(song.lyricsPath)}>打开歌词文件</button>}
       {showLyrics && <pre className="lyrics-viewer">{lyrics}</pre>}
     </section>
-
     <section><h3>文件</h3>
       <p className="path">{song.path}</p>
       <button onClick={() => api.openFileLocation(song.path)}>打开所在文件夹</button>
@@ -90,9 +81,20 @@ export default function App() {
   };
 
   const selectSong = async (song: SongItem) => {
-    if (selectedSong?.path === song.path) { setSelectedSong(null); return; }
-    const detail = await api.getSongDetail(song.path);
-    setSelectedSong({ ...song, ...(detail || {}) });
+    if (selectedSong?.path === song.path) {
+      setSelectedSong(null);
+      return;
+    }
+
+    try {
+      console.log("[Detail Load]", song.path);
+      const detail = await api.getSongDetail(song.path);
+      console.log("[Detail Result]", detail);
+      setSelectedSong({ ...song, ...(detail || {}) });
+    } catch (error) {
+      console.error("加载歌曲详情失败", error);
+      setSelectedSong(song);
+    }
   };
 
   const filtered = useMemo(() => songs.filter(s => `${s.title}${s.artist}${s.album}`.toLowerCase().includes(keyword.toLowerCase())), [songs, keyword]);
