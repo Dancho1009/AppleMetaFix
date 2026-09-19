@@ -12,9 +12,10 @@ export interface ScanStats {
   totalSize: number;
   artists: number;
   albums: number;
-  coverCount: number;
-  lyricsCount: number;
-  missingLyrics: number;
+  cover: {
+    exists: number;
+    missing: number;
+  };
   lyrics: {
     embedded: number;
     external: number;
@@ -44,10 +45,15 @@ export class FolderScanner {
       totalSize: 0,
       artists: 0,
       albums: 0,
-      coverCount: 0,
-      lyricsCount: 0,
-      missingLyrics: 0,
-      lyrics: { embedded: 0, external: 0, missing: 0 },
+      cover: {
+        exists: 0,
+        missing: 0,
+      },
+      lyrics: {
+        embedded: 0,
+        external: 0,
+        missing: 0,
+      },
     };
 
     const artists = new Set<string>();
@@ -66,15 +72,17 @@ export class FolderScanner {
 
       if (metadata.artist) artists.add(metadata.artist);
       if (metadata.album) albums.add(metadata.album);
-      if (metadata.coverPath) stats.coverCount++;
+
+      if (metadata.coverPath) {
+        stats.cover.exists++;
+      } else {
+        stats.cover.missing++;
+      }
 
       const lyrics = metadata.lyrics;
       if (lyrics?.embedded?.exists) stats.lyrics.embedded++;
       if (lyrics?.external?.exists) stats.lyrics.external++;
       if (!lyrics?.exists) stats.lyrics.missing++;
-
-      stats.lyricsCount = stats.lyrics.embedded + stats.lyrics.external;
-      stats.missingLyrics = stats.lyrics.missing;
 
       try {
         stats.totalSize += (await fs.stat(file)).size;
@@ -104,10 +112,27 @@ export class FolderScanner {
       stats.artists = artists.size;
       stats.albums = albums.size;
 
-      onProgress?.({ phase: "metadata", current, total: files.length, file, stats: { ...stats, lyrics: { ...stats.lyrics } } });
+      onProgress?.({
+        phase: "metadata",
+        current,
+        total: files.length,
+        file,
+        stats: {
+          ...stats,
+          cover: { ...stats.cover },
+          lyrics: { ...stats.lyrics },
+        },
+      });
     }
 
-    onProgress?.({ phase: "index", current: files.length, total: files.length, file: "", stats });
+    onProgress?.({
+      phase: "index",
+      current: files.length,
+      total: files.length,
+      file: "",
+      stats,
+    });
+
     return results;
   }
 
