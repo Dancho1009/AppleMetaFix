@@ -9,6 +9,8 @@ interface SongItem {
   duration?: number;
   year?: number;
   genre?: string;
+  cover?: boolean;
+  lyrics?: boolean;
 }
 
 function formatDuration(seconds?: number) {
@@ -16,6 +18,18 @@ function formatDuration(seconds?: number) {
   const min = Math.floor(seconds / 60);
   const sec = Math.floor(seconds % 60).toString().padStart(2, "0");
   return `${min}:${sec}`;
+}
+
+function getMetadataStatus(song: SongItem) {
+  const missing: string[] = [];
+  if (!song.title) missing.push("标题");
+  if (!song.artist) missing.push("艺术家");
+  if (!song.album) missing.push("专辑");
+  if (!song.cover) missing.push("封面");
+  if (!song.lyrics) missing.push("歌词");
+
+  if (missing.length === 0) return "完整";
+  return `缺少: ${missing.join("、")}`;
 }
 
 export default function App() {
@@ -32,17 +46,11 @@ export default function App() {
         return;
       }
 
-      setStatus("正在打开文件夹选择窗口...");
       const selectedFolder = await window.appleMetaFix.selectFolder();
-
-      if (!selectedFolder) {
-        setStatus("已取消选择文件夹");
-        return;
-      }
+      if (!selectedFolder) return;
 
       setFolder(selectedFolder);
       setStatus("正在扫描音乐库...");
-
       const result = await window.appleMetaFix.scanFolder(selectedFolder);
       setSongs(result || []);
       setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
@@ -54,17 +62,16 @@ export default function App() {
   const filteredSongs = useMemo(() => {
     return songs.filter((song) => {
       const text = `${song.title || ""} ${song.artist || ""} ${song.album || ""}`.toLowerCase();
-      const matchKeyword = text.includes(keyword.toLowerCase());
-      const matchType =
-        filter === "全部" ||
-        song.path.toLowerCase().endsWith(filter.toLowerCase());
-      return matchKeyword && matchType;
+      return (
+        text.includes(keyword.toLowerCase()) &&
+        (filter === "全部" || song.path.toLowerCase().endsWith(filter))
+      );
     });
   }, [songs, keyword, filter]);
 
   return (
     <main className="app-container">
-      <header className="header">
+      <header className="header compact-header">
         <h1>AppleMetaFix</h1>
         <p className="subtitle">Apple Music 元数据增强工具</p>
       </header>
@@ -74,34 +81,21 @@ export default function App() {
         <div className="path">{folder || "未选择文件夹"}</div>
       </section>
 
-      <section className="card status-card">
+      <section className="card status-card compact-card">
         <h2>扫描状态</h2>
         <p>{status}</p>
-      </section>
-
-      <section className="card">
-        <h2>音乐库统计</h2>
-        <div className="stats">
-          <div className="stat"><div className="stat-number">{songs.length}</div>歌曲总数</div>
-          <div className="stat"><div className="stat-number">0</div>已匹配</div>
-          <div className="stat"><div className="stat-number">{songs.length}</div>待匹配</div>
-        </div>
       </section>
 
       <section className="card song-card">
         <div className="table-header">
           <h2>歌曲列表 ({filteredSongs.length})</h2>
           <div className="filters">
-            <input
-              placeholder="搜索歌曲、艺术家、专辑"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
+            <input placeholder="搜索歌曲、艺术家、专辑" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
             <select value={filter} onChange={(e) => setFilter(e.target.value)}>
               <option>全部</option>
-              <option>.flac</option>
-              <option>.mp3</option>
-              <option>.m4a</option>
+              <option value=".flac">.flac</option>
+              <option value=".mp3">.mp3</option>
+              <option value=".m4a">.m4a</option>
             </select>
           </div>
         </div>
@@ -114,9 +108,9 @@ export default function App() {
                 <th>艺术家</th>
                 <th>专辑</th>
                 <th>年份</th>
-                <th>类型</th>
+                <th>格式</th>
                 <th>时长</th>
-                <th>路径</th>
+                <th>标签状态</th>
               </tr>
             </thead>
             <tbody>
@@ -126,9 +120,9 @@ export default function App() {
                   <td title={song.artist}>{song.artist || "-"}</td>
                   <td title={song.album}>{song.album || "-"}</td>
                   <td>{song.year || "-"}</td>
-                  <td>{song.genre || "-"}</td>
+                  <td>{song.path.split(".").pop()?.toUpperCase()}</td>
                   <td>{formatDuration(song.duration)}</td>
-                  <td title={song.path}>{song.path}</td>
+                  <td>{getMetadataStatus(song)}</td>
                 </tr>
               ))}
             </tbody>
