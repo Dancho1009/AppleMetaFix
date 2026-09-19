@@ -1,30 +1,50 @@
-import React, {useState} from "react";
+import React, {useMemo, useState} from "react";
 
 export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
  const api:any=(window as any).appleMetaFix;
- const [showLyrics,setShowLyrics]=useState(false);
- const cover=song.coverDataUrl || (song.coverPath ? `file:///${encodeURI(song.coverPath.replace(/\\/g,"/"))}` : "");
+ const [lyricsMode,setLyricsMode]=useState<"embedded"|"external">("embedded");
+ const cover=song.coverDataUrl || (song.coverPath ? `file:///${encodeURI(song.coverPath.replace(/\\\\/g,"/"))}` : "");
+
  const embedded=song.lyrics?.embedded?.content || song.embeddedLyrics || "";
  const external=song.lyrics?.external?.content || "";
- const lyrics=external || embedded;
+ const lyrics=useMemo(()=>lyricsMode==="external" ? external : embedded,[lyricsMode,embedded,external]);
+
  return <aside className="card detail-panel">
   <button onClick={onClose}>关闭</button>
-  {cover ? <img className="detail-cover" src={cover}/> : <div className="cover-empty">暂无封面</div>}
-  <h3>{song.title}</h3>
-  <p>艺术家：{song.artist||"-"}</p>
-  <p>专辑：{song.album||"-"}</p>
-  <p>专辑艺术家：{song.albumArtist||"-"}</p>
-  <p>流派：{song.genre||"-"}</p>
-  <p>年份：{song.year||"-"}</p>
-  <p>格式：{song.format||"-"}</p>
-  <p>码率：{song.bitrate ? `${song.bitrate} kbps` : "-"}</p>
-  <p>采样率：{song.sampleRate ? `${song.sampleRate} Hz` : "-"}</p>
-  <p>位深：{song.bitDepth ? `${song.bitDepth} bit` : "-"}</p>
-  <div className="lyrics-actions">
-   <button onClick={()=>setShowLyrics(v=>!v)}>显示歌词</button>
-   {song.lyricsPath && <button onClick={()=>api.openLyricsFile(song.lyricsPath)}>打开歌词文件</button>}
+
+  {cover ? <img className="detail-cover" src={cover} alt="cover"/> : <div className="cover-empty">暂无封面</div>}
+
+  <h3>{song.title||"未知标题"}</h3>
+
+  <section className="metadata-block">
+   <p>艺术家：{song.artist||"-"}</p>
+   <p>专辑：{song.album||"-"}</p>
+   <p>专辑艺术家：{song.albumArtist||"-"}</p>
+   <p>作曲家：{song.composer||"-"}</p>
+   <p>流派：{song.genre||"-"}</p>
+   <p>年份：{song.year||"-"}</p>
+  </section>
+
+  <section className="audio-info-block">
+   <p>格式：{song.format||"-"}</p>
+   <p>码率：{song.bitrate ? `${song.bitrate} kbps` : "-"}</p>
+   <p>采样率：{song.sampleRate ? `${song.sampleRate} Hz` : "-"}</p>
+   <p>位深：{song.bitDepth ? `${song.bitDepth} bit` : "-"}</p>
+   <p>大小：{song.size ? `${(song.size/1024/1024).toFixed(2)} MB` : "-"}</p>
+  </section>
+
+  <section className="lyrics-section">
+   <h4>歌词</h4>
+   <div className="lyrics-actions">
+    <button className={lyricsMode==="embedded"?"active":""} onClick={()=>setLyricsMode("embedded")}>内嵌歌词</button>
+    <button className={lyricsMode==="external"?"active":""} onClick={()=>setLyricsMode("external")}>外置LRC</button>
+   </div>
+   <pre className="lyrics-viewer">{lyrics || "暂无歌词"}</pre>
+  </section>
+
+  <div className="detail-actions">
+   {song.lyricsPath&&<button onClick={()=>api.openLyricsFile(song.lyricsPath)}>打开歌词文件</button>}
+   <button onClick={()=>api.openFileLocation(song.path)}>打开所在文件夹</button>
   </div>
-  {showLyrics && <pre className="lyrics-viewer">{lyrics || "暂无歌词"}</pre>}
-  <button onClick={()=>api.openFileLocation(song.path)}>打开所在文件夹</button>
  </aside>
 }
