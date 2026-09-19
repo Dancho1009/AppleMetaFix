@@ -1,6 +1,7 @@
 import { parseFile } from "music-metadata";
-import { LyricsScanner, LyricsInfo } from "./LyricsScanner";
+import { LyricsScanner } from "./LyricsScanner";
 import { MetadataQuality, analyzeMetadataQuality } from "./MetadataQuality";
+import { saveCoverToCache } from "./CoverCache";
 
 export interface AudioMetadata {
   path: string;
@@ -14,7 +15,13 @@ export interface AudioMetadata {
   genre?: string;
   isrc?: string;
   cover?: string;
-  lyrics?: LyricsInfo;
+  coverPath?: string;
+  coverDataUrl?: string;
+  lyrics?: any;
+  lyricsPath?: string;
+  format?: string;
+  bitrate?: number;
+  sampleRate?: number;
   quality?: MetadataQuality;
 }
 
@@ -25,8 +32,17 @@ export class MetadataScanner {
     const metadata = await parseFile(filePath);
     const common = metadata.common;
     const format = metadata.format;
-
     const lyrics = await this.lyricsScanner.scan(filePath, metadata);
+
+    const picture = common.picture?.[0];
+    let coverPath: string | undefined;
+    let coverDataUrl: string | undefined;
+
+    if (picture?.data) {
+      coverPath = await saveCoverToCache(filePath, picture.data, picture.format);
+      const mime = picture.format || "image/jpeg";
+      coverDataUrl = `data:${mime};base64,${Buffer.from(picture.data).toString("base64")}`;
+    }
 
     const result: AudioMetadata = {
       path: filePath,
@@ -39,14 +55,17 @@ export class MetadataScanner {
       year: common.year,
       genre: common.genre?.[0],
       isrc: common.isrc?.[0],
-      cover: common.picture?.[0]
-        ? `embedded:${common.picture[0].format}`
-        : undefined,
+      cover: coverPath ? "cached" : undefined,
+      coverPath,
+      coverDataUrl,
       lyrics,
+      lyricsPath: lyrics.path,
+      format: format.container,
+      bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
+      sampleRate: format.sampleRate,
     };
 
     result.quality = analyzeMetadataQuality(result);
-
     return result;
   }
 }

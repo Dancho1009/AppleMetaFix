@@ -1,16 +1,93 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { readFile, writeFile, rm } from 'node:fs/promises';
 import { registerIPCHandlers } from './ipc';
 
+const cleanupTasks: Array<() => void | Promise<void>> = [];
+
+export function registerCleanupTask(task: () => void | Promise<void>) {
+  cleanupTasks.push(task);
+}
+
+async function cleanupBeforeExit() {
+  console.log('[App] cleanup before exit');
+
+  for (const task of cleanupTasks.reverse()) {
+    try {
+      await task();
+    } catch (error) {
+      console.error('[App] cleanup failed:', error);
+    }
+  }
+}
+
 function setupElectronCache() {
-  // 将 Electron Chromium 缓存放到启动目录同级 cache 文件夹
-  // 避免 Windows 用户目录权限问题导致启动时刷缓存错误
   const cachePath = path.join(process.cwd(), 'cache');
 
+  if (!existsSync(cachePath)) {
+    mkdirSync(cachePath, { recursive: true });
+  }
+
   app.setPath('cache', cachePath);
+  app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 
   console.log('Electron cache:', cachePath);
+}
+
+function getWindowStatePath() {
+  return path.join(app.getPath('userData'), 'window-state.json');
+}
+
+async function loadWindowState() {
+  const defaultState = {
+    width: 1200,
+    height: 800,
+  };
+
+  try {
+    const content = await readFile(getWindowStatePath(), 'utf-8');
+    return {
+      ...defaultState,
+      ...JSON.parse(content),
+    };
+  } catch {
+    return defaultState;
+  }
+}
+
+function saveWindowState(window: BrowserWindow) {
+  const save = async () => {
+    if (window.isDestroyed()) return;
+
+    const bounds = window.getBounds();
+    await writeFile(
+      getWindowStatePath(),
+      JSON.stringify({
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.x,
+        y: bounds.y,
+      }),
+      'utf-8',
+    );
+  };
+
+  window.on('resize', save);
+  window.on('move', save);
+}
+
+function registerAppCleanup() {
+  registerCleanupTask(async () => {
+    const coverCache = path.join(app.getPath('userData'), 'cache', 'covers');
+
+    try {
+      await rm(coverCache, { recursive: true, force: true });
+      console.log('[App] cover cache removed:', coverCache);
+    } catch (error) {
+      console.error('[App] remove cover cache failed:', error);
+    }
+  });
 }
 
 function getPreloadPath() {
@@ -34,16 +111,22 @@ function getPreloadPath() {
   return preloadPath;
 }
 
-function createWindow() {
+async function createWindow() {
+  const state = await loadWindowState();
+
   const window = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: state.width,
+    height: state.height,
+    x: state.x,
+    y: state.y,
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+
+  saveWindowState(window);
 
   const rendererUrl = process.env.ELECTRON_RENDERER_URL;
 
@@ -56,10 +139,19 @@ function createWindow() {
 
 app.whenReady().then(() => {
   setupElectronCache();
+  registerAppCleanup();
   registerIPCHandlers();
   createWindow();
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', async (event) => {
+  if (cleanupTasks.length > 0) {
+    event.preventDefault();
+    await cleanupBeforeExit();
+    app.exit(0);
+  }
 });
