@@ -26,7 +26,6 @@ if errorlevel 1 (
 )
 call npm -v
 
-echo [3/5] Checking electron-vite...
 if not exist "node_modules\.bin\electron-vite.cmd" (
     echo Installing dependencies...
     call npm install
@@ -37,19 +36,7 @@ if not exist "node_modules\.bin\electron-vite.cmd" (
     )
 )
 
-echo [4/5] Checking Electron...
-call npx electron --version
-if errorlevel 1 (
-    echo Repairing Electron...
-    call npm rebuild electron
-    if errorlevel 1 (
-        echo [ERROR] Electron repair failed.
-        pause
-        exit /b 1
-    )
-)
+echo [3/5] Starting process manager...
+node scripts\launcher.js
 
-echo [5/5] Starting development environment...
-call npm run dev
-
-pause
+exit /b 0
