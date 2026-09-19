@@ -1,12 +1,30 @@
 import React, { useState } from "react";
 
+interface SongItem {
+  path: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+}
+
 export default function App() {
   const [status, setStatus] = useState("等待扫描音乐库...");
   const [folder, setFolder] = useState("");
+  const [songs, setSongs] = useState<SongItem[]>([]);
 
-  const handleSelectFolder = () => {
-    setFolder("未连接文件选择器");
-    setStatus("准备接入 Electron 文件夹选择功能...");
+  const handleSelectFolder = async () => {
+    const selectedFolder = await window.appleMetaFix?.selectFolder();
+
+    if (!selectedFolder) {
+      return;
+    }
+
+    setFolder(selectedFolder);
+    setStatus("正在扫描音乐库...");
+
+    const result = await window.appleMetaFix?.scanFolder(selectedFolder);
+    setSongs(result || []);
+    setStatus(`扫描完成，共发现 ${result?.length || 0} 首歌曲`);
   };
 
   return (
@@ -25,13 +43,27 @@ export default function App() {
       </section>
 
       <section style={{ marginTop: 24 }}>
-        <h2>功能模块</h2>
-        <ul>
-          <li>本地音乐元数据扫描</li>
-          <li>Apple Music 匹配</li>
-          <li>封面与歌词增强</li>
-          <li>Tag 写入</li>
-        </ul>
+        <h2>歌曲列表</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>文件</th>
+              <th>标题</th>
+              <th>艺术家</th>
+              <th>专辑</th>
+            </tr>
+          </thead>
+          <tbody>
+            {songs.map((song) => (
+              <tr key={song.path}>
+                <td>{song.path}</td>
+                <td>{song.title || "-"}</td>
+                <td>{song.artist || "-"}</td>
+                <td>{song.album || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
     </main>
   );
