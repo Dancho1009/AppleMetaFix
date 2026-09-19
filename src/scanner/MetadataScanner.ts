@@ -14,7 +14,11 @@ export interface AudioMetadata {
   genre?: string;
   isrc?: string;
   cover?: string;
+  coverDataUrl?: string;
   lyrics?: LyricsInfo;
+  format?: string;
+  bitrate?: number;
+  sampleRate?: number;
   quality?: MetadataQuality;
 }
 
@@ -28,6 +32,11 @@ export class MetadataScanner {
 
     const lyrics = await this.lyricsScanner.scan(filePath, metadata);
 
+    const picture = common.picture?.[0];
+    const coverDataUrl = picture
+      ? `data:${picture.format};base64,${picture.data.toString("base64")}`
+      : undefined;
+
     const result: AudioMetadata = {
       path: filePath,
       title: common.title,
@@ -39,10 +48,12 @@ export class MetadataScanner {
       year: common.year,
       genre: common.genre?.[0],
       isrc: common.isrc?.[0],
-      cover: common.picture?.[0]
-        ? `embedded:${common.picture[0].format}`
-        : undefined,
+      cover: picture ? `embedded:${picture.format}` : undefined,
+      coverDataUrl,
       lyrics,
+      format: format.container,
+      bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
+      sampleRate: format.sampleRate,
     };
 
     result.quality = analyzeMetadataQuality(result);
