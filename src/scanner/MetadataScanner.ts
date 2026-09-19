@@ -16,6 +16,7 @@ export interface AudioMetadata {
   isrc?: string;
   cover?: string;
   coverPath?: string;
+  coverDataUrl?: string;
   lyrics?: any;
   lyricsPath?: string;
   format?: string;
@@ -35,9 +36,12 @@ export class MetadataScanner {
 
     const picture = common.picture?.[0];
     let coverPath: string | undefined;
+    let coverDataUrl: string | undefined;
 
     if (picture?.data) {
       coverPath = await saveCoverToCache(filePath, picture.data, picture.format);
+      const mime = picture.format || "image/jpeg";
+      coverDataUrl = `data:${mime};base64,${Buffer.from(picture.data).toString("base64")}`;
     }
 
     const result: AudioMetadata = {
@@ -53,6 +57,7 @@ export class MetadataScanner {
       isrc: common.isrc?.[0],
       cover: coverPath ? "cached" : undefined,
       coverPath,
+      coverDataUrl,
       lyrics,
       lyricsPath: lyrics.path,
       format: format.container,
