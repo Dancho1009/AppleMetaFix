@@ -1,5 +1,6 @@
 import { parseFile } from "music-metadata";
 import { LyricsScanner, LyricsInfo } from "./LyricsScanner";
+import { MetadataQuality, analyzeMetadataQuality } from "./MetadataQuality";
 
 export interface AudioMetadata {
   path: string;
@@ -14,6 +15,7 @@ export interface AudioMetadata {
   isrc?: string;
   cover?: string;
   lyrics?: LyricsInfo;
+  quality?: MetadataQuality;
 }
 
 export class MetadataScanner {
@@ -26,7 +28,7 @@ export class MetadataScanner {
 
     const lyrics = await this.lyricsScanner.scan(filePath, metadata);
 
-    return {
+    const result: AudioMetadata = {
       path: filePath,
       title: common.title,
       artist: common.artist,
@@ -42,5 +44,9 @@ export class MetadataScanner {
         : undefined,
       lyrics,
     };
+
+    result.quality = analyzeMetadataQuality(result);
+
+    return result;
   }
 }
