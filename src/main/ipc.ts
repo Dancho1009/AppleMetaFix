@@ -1,11 +1,28 @@
 import { dialog, ipcMain, shell } from "electron";
 import path from "node:path";
+import { exec } from "node:child_process";
 import { FolderScanner } from "../scanner/FolderScanner";
 
 const folderScanner = new FolderScanner();
 
 function logIPC(name: string, payload?: unknown) {
   console.log(`[IPC] ${name}`, payload ?? "");
+}
+
+function openWindowsPath(targetPath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const command = `start "" "${targetPath}"`;
+
+    exec(command, (error) => {
+      if (error) {
+        console.error("[IPC] Windows start failed:", error);
+        resolve(false);
+        return;
+      }
+
+      resolve(true);
+    });
+  });
 }
 
 export function registerIPCHandlers() {
@@ -33,29 +50,18 @@ export function registerIPCHandlers() {
 
     try {
       if (!filePath) {
-        console.error("[IPC] open-file-location: empty path");
         return false;
       }
 
-      // UNC/NAS 路径下 showItemInFolder 可能无响应
-      // 优先尝试定位文件，失败后打开所在目录
-      try {
-        shell.showItemInFolder(filePath);
-        logIPC("open-file-location showItemInFolder success");
+      // NAS/SMB 路径使用 Windows Explorer，避免 Electron shell 延迟
+      const opened = await openWindowsPath(path.dirname(filePath));
+
+      if (opened) {
+        logIPC("open-file-location success", filePath);
         return true;
-      } catch (error) {
-        console.warn("[IPC] showItemInFolder failed, fallback:", error);
       }
 
-      const folderPath = path.dirname(filePath);
-      const result = await shell.openPath(folderPath);
-
-      if (result !== "") {
-        console.error("[IPC] 打开文件夹失败:", result);
-        return false;
-      }
-
-      logIPC("open-file-location fallback success", folderPath);
+      shell.showItemInFolder(filePath);
       return true;
     } catch (error) {
       console.error("[IPC] 打开文件位置失败:", error);
@@ -68,19 +74,19 @@ export function registerIPCHandlers() {
 
     try {
       if (!lyricsPath) {
-        console.error("[IPC] open-lyrics-file: empty path");
         return false;
+      }
+
+      // 使用 Windows 文件关联打开 lrc，兼容 SMB 路径
+      const opened = await openWindowsPath(lyricsPath);
+
+      if (opened) {
+        logIPC("open-lyrics-file success", lyricsPath);
+        return true;
       }
 
       const result = await shell.openPath(lyricsPath);
-
-      if (result !== "") {
-        console.error("[IPC] 打开歌词失败:", result);
-        return false;
-      }
-
-      logIPC("open-lyrics-file success");
-      return true;
+      return result === "";
     } catch (error) {
       console.error("[IPC] 打开歌词失败:", error);
       return false;
