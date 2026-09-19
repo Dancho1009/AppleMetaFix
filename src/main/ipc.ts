@@ -22,16 +22,27 @@ export function registerIPCHandlers() {
   });
 
   ipcMain.handle("open-file-location", async (_event, filePath: string) => {
-    if (!filePath) return false;
+    try {
+      if (!filePath) return false;
 
-    const result = await shell.openPath(path.dirname(filePath));
-    return result === "";
+      // Windows 下使用 showItemInFolder 更稳定，尤其适合网络路径和 NAS 路径
+      shell.showItemInFolder(filePath);
+      return true;
+    } catch (error) {
+      console.error("打开文件位置失败:", error);
+      return false;
+    }
   });
 
   ipcMain.handle("open-lyrics-file", async (_event, lyricsPath?: string) => {
-    if (!lyricsPath) return false;
+    try {
+      if (!lyricsPath) return false;
 
-    const result = await shell.openPath(lyricsPath);
-    return result === "";
+      const result = await shell.openPath(lyricsPath);
+      return result === "";
+    } catch (error) {
+      console.error("打开歌词失败:", error);
+      return false;
+    }
   });
 }
