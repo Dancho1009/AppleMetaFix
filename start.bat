@@ -1,55 +1,55 @@
 @echo off
 chcp 65001 >nul
+setlocal
 
 cd /d %~dp0
 
 echo =====================================
-echo AppleMetaFix 启动器
-echo =====================================
+echo AppleMetaFix Launcher
+ echo =====================================
 
+echo [1/5] Checking Node.js...
 where node >nul 2>&1
 if errorlevel 1 (
-    echo [错误] 未检测到 Node.js，请先安装 Node.js LTS。
+    echo [ERROR] Node.js not found.
     pause
     exit /b 1
 )
+node -v
 
+echo [2/5] Checking npm...
 where npm >nul 2>&1
 if errorlevel 1 (
-    echo [错误] 未检测到 npm。
+    echo [ERROR] npm not found.
     pause
     exit /b 1
 )
+npm -v
 
+echo [3/5] Checking electron-vite...
 if not exist "node_modules\.bin\electron-vite.cmd" (
-    echo 未检测到 Electron 开发依赖，正在安装...
+    echo Installing dependencies...
     call npm install
     if errorlevel 1 (
-        echo [错误] npm install 失败。
+        echo [ERROR] npm install failed.
         pause
         exit /b 1
     )
 )
 
-REM 检查 Electron 二进制是否正常
-npx electron --version >nul 2>&1
+echo [4/5] Checking Electron...
+call npx electron --version
 if errorlevel 1 (
-    echo Electron 二进制异常，正在重新安装...
+    echo Repairing Electron...
     call npm rebuild electron
     if errorlevel 1 (
-        echo [错误] Electron 修复失败。
+        echo [ERROR] Electron repair failed.
         pause
         exit /b 1
     )
 )
 
-echo 检查依赖完成。
-echo 启动开发环境...
+ echo [5/5] Starting development environment...
 call npm run dev
-
-if errorlevel 1 (
-    echo.
-    echo [错误] AppleMetaFix 启动失败。
-)
 
 pause
