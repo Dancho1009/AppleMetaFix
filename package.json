@@ -2,11 +2,12 @@
   "name": "applemetafix",
   "version": "0.1.0",
   "description": "Apple Music based local music metadata enhancement tool",
-  "main": "dist/main/index.js",
+  "main": "out/main/index.js",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "electron": "electron .",
-    "build": "electron-builder",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron .",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -17,15 +18,16 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@vitejs/plugin-react": "latest",
     "electron": "latest",
     "electron-builder": "latest",
+    "electron-vite": "latest",
     "typescript": "latest",
-    "vite": "latest",
-    "@vitejs/plugin-react": "latest"
+    "vite": "latest"
   },
   "dependencies": {
+    "music-metadata": "latest",
     "react": "latest",
-    "react-dom": "latest",
-    "music-metadata": "latest"
+    "react-dom": "latest"
   }
 }
