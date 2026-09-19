@@ -19,7 +19,7 @@
   "license": "MIT",
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.4",
-    "electron": "latest",
+    "electron": "^39.0.0",
     "electron-builder": "latest",
     "electron-vite": "^5.0.0",
     "typescript": "latest",
