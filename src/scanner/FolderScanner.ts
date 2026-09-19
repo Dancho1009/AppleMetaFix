@@ -13,16 +13,28 @@ const AUDIO_EXTENSIONS = new Set([
   ".opus",
 ]);
 
+export interface ScanProgress {
+  current: number;
+  total: number;
+  file: string;
+}
+
 export class FolderScanner {
   private metadataScanner = new MetadataScanner();
 
-  async scanFolder(folderPath: string): Promise<AudioMetadata[]> {
+  async scanFolder(
+    folderPath: string,
+    onProgress?: (progress: ScanProgress) => void,
+  ): Promise<AudioMetadata[]> {
     const files = await this.collectAudioFiles(folderPath);
     const results: AudioMetadata[] = [];
+
+    let current = 0;
 
     for (const file of files) {
       const metadata = await this.metadataScanner.scanFile(file);
       results.push(metadata);
+      current++;
 
       upsertSong({
         path: metadata.path,
@@ -40,10 +52,15 @@ export class FolderScanner {
         sample_rate: metadata.sampleRate,
         lyrics_type: metadata.lyrics?.type,
         lyrics_path: metadata.lyricsPath,
-        embedded_lyrics:
-          metadata.lyrics?.embedded?.content ?? undefined,
+        embedded_lyrics: metadata.lyrics?.embedded?.content ?? undefined,
         cover_path: metadata.coverPath,
         cover_exist: Boolean(metadata.coverPath),
+      });
+
+      onProgress?.({
+        current,
+        total: files.length,
+        file,
       });
     }
 
