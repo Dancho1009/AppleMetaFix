@@ -7,10 +7,11 @@ export default defineConfig({
   },
   preload: {
     build: {
-      lib: {
-        entry: 'src/main/preload.ts',
-        formats: ['cjs'],
-        fileName: () => 'preload',
+      rollupOptions: {
+        input: 'src/main/preload.ts',
+        output: {
+          entryFileNames: 'index.js',
+        },
       },
     },
     plugins: [externalizeDepsPlugin()],
