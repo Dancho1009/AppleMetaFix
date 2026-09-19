@@ -4,19 +4,6 @@ import "./app.css";
 interface LyricsInfo { exists:boolean; type:"embedded"|"external"|"none"; format?:string; path?:string; }
 interface SongItem { path:string; title?:string; artist?:string; album?:string; albumArtist?:string; composer?:string; genre?:string; year?:number; cover?:string|boolean; lyrics?:LyricsInfo; }
 
-function getTags(song:SongItem){
- const tags:string[]=[];
- if(song.title) tags.push("标题");
- if(song.artist) tags.push("艺术家");
- if(song.album) tags.push("专辑");
- if(song.albumArtist) tags.push("专辑艺术家");
- if(song.composer) tags.push("作曲");
- if(song.genre) tags.push("流派");
- if(song.year) tags.push("年份");
- if(song.cover) tags.push("封面");
- return tags;
-}
-
 function getLyricsLabel(song:SongItem){
  const type=song.lyrics?.type;
  if(type==="embedded") return "内嵌歌词";
@@ -60,7 +47,7 @@ export default function App(){
     </div>
     <div className="table-container large-table">
      <table>
-      <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>年份</th><th>歌词</th><th>元数据标签</th></tr></thead>
+      <thead><tr><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>年份</th><th>歌词</th></tr></thead>
       <tbody>{filtered.map(s=><tr key={s.path} onClick={()=>setSelectedSong(s)}>
        <td>{s.title||"-"}</td>
        <td>{s.artist||"-"}</td>
@@ -68,7 +55,6 @@ export default function App(){
        <td>{s.genre||"-"}</td>
        <td>{s.year||"-"}</td>
        <td>{getLyricsLabel(s)}</td>
-       <td>{getTags(s).join(" / ")}</td>
       </tr>)}</tbody>
      </table>
     </div>
@@ -84,7 +70,6 @@ export default function App(){
     <p><b>流派：</b>{selectedSong.genre||"-"}</p>
     <p><b>年份：</b>{selectedSong.year||"-"}</p>
     <p><b>歌词：</b>{getLyricsLabel(selectedSong)}</p>
-    <p><b>已有标签：</b>{getTags(selectedSong).join("、")||"无"}</p>
    </aside>}
   </section>
  </main>;
