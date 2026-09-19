@@ -31,11 +31,18 @@ export default function App(){
  const [folder,setFolder]=useState("");
  const [songs,setSongs]=useState<SongItem[]>([]);
  const [selectedSong,setSelectedSong]=useState<SongItem|null>(null);
+ const [selectedSongId,setSelectedSongId]=useState<string|null>(null);
  const [keyword,setKeyword]=useState("");
  const [scanProgress,setScanProgress]=useState<any>(null);
  const [scanDone,setScanDone]=useState(false);
  const [dashboard,setDashboard]=useState<LibraryStats|null>(null);
  const [filter,setFilter]=useState("");
+ const rowRefs=React.useRef<Record<string,HTMLTableRowElement|null>>({});
+
+ const selectSong=(song:SongItem)=>{
+  setSelectedSong(song);
+  setSelectedSongId(song.path);
+ };
 
  useEffect(()=>{
   api.onScanProgress((progress:any)=>{
@@ -45,6 +52,28 @@ export default function App(){
   });
  },[]);
 
+ useEffect(()=>{
+  const handler=(e:KeyboardEvent)=>{
+   if(e.target instanceof HTMLInputElement)return;
+   if(!selectedSongId)return;
+   const index=filtered.findIndex(s=>s.path===selectedSongId);
+   if(index<0)return;
+   if(e.key!=="ArrowDown"&&e.key!=="ArrowUp")return;
+   e.preventDefault();
+   const nextIndex=e.key==="ArrowDown"?index+1:index-1;
+   if(nextIndex<0||nextIndex>=filtered.length)return;
+   selectSong(filtered[nextIndex]);
+  };
+  window.addEventListener("keydown",handler);
+  return ()=>window.removeEventListener("keydown",handler);
+ },[selectedSongId, filtered]);
+
+ useEffect(()=>{
+  if(selectedSongId){
+   rowRefs.current[selectedSongId]?.scrollIntoView({block:"nearest"});
+  }
+ },[selectedSongId]);
+
  const selectFolder=async()=>{
   const dir=await api.selectFolder();
   if(!dir)return;
@@ -53,7 +82,6 @@ export default function App(){
   setScanDone(false);
   const result=await api.scanFolder(dir)||[];
   setSongs(result);
-  setScanDone(true);
  };
 
  const filtered=useMemo(()=>songs.filter(s=>{
@@ -75,7 +103,7 @@ export default function App(){
     <input className="search-box" placeholder="搜索歌曲、艺术家、专辑、流派" value={keyword} onChange={e=>setKeyword(e.target.value)}/>
     <div className="song-table-container">
      <table><thead><tr><th>封面</th><th>标题</th><th>艺术家</th><th>专辑</th><th>流派</th><th>歌词</th></tr></thead>
-     <tbody>{filtered.map(song=><tr key={song.path} onClick={()=>setSelectedSong(song)}><td><img className="table-cover" src={resolveCover(song)}/></td><td>{song.title}</td><td>{song.artist}</td><td>{song.album}</td><td>{song.genre||"-"}</td><td>{getLyricsLabel(song)}</td></tr>)}</tbody></table>
+     <tbody>{filtered.map(song=><tr ref={el=>rowRefs.current[song.path]=el} className={selectedSongId===song.path?"selected-song":""} key={song.path} onClick={()=>selectSong(song)}><td><img className="table-cover" src={resolveCover(song)}/></td><td>{song.title}</td><td>{song.artist}</td><td>{song.album}</td><td>{song.genre||"-"}</td><td>{getLyricsLabel(song)}</td></tr>)}</tbody></table>
     </div>
    </section>
    {selectedSong&&<DetailPanel song={selectedSong} onClose={()=>setSelectedSong(null)}/>} 
