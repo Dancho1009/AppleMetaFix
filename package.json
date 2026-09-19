@@ -1,0 +1,22 @@
+{
+  "name": "applemetafix",
+  "version": "0.1.0",
+  "description": "Apple Music based local music metadata enhancement tool",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "music",
+    "metadata",
+    "apple-music",
+    "electron"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest",
+    "typescript": "latest"
+  }
+}
