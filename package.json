@@ -4,7 +4,8 @@
   "description": "Apple Music based local music metadata enhancement tool",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "electron .",
+    "dev": "vite --host 0.0.0.0",
+    "electron": "electron .",
     "build": "electron-builder",
     "typecheck": "tsc --noEmit"
   },
