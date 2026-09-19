@@ -1,15 +1,16 @@
 *{box-sizing:border-box;}
-body{margin:0;background:#f5f7fb;color:#111827;font-family:"Microsoft YaHei UI","Segoe UI",sans-serif;font-size:14px;}
-.app-container{padding:18px;max-width:100%;}
+body{margin:0;background:#f5f7fb;color:#111827;font-family:"Microsoft YaHei UI","Segoe UI",sans-serif;font-size:14px;overflow:hidden;}
+.app-container{padding:18px;max-width:100%;height:100vh;display:flex;flex-direction:column;}
 .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin-top:8px;}
 button{background:#2563eb;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;margin-right:8px;}
-.music-layout{display:flex;gap:14px;align-items:stretch;min-height:calc(100vh - 210px);height:auto;}
-.song-card{flex:1;min-width:0;display:flex;flex-direction:column;}
-.detail-panel{width:360px;min-width:360px;max-height:calc(100vh - 120px);overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.music-layout{display:flex;gap:14px;align-items:stretch;flex:1;min-height:0;margin-top:8px;}
+.song-card{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.song-table-container{flex:1;min-height:0;overflow-y:auto;}
+.detail-panel{width:360px;min-width:360px;height:100%;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
 .detail-cover{width:260px;height:260px;object-fit:contain;align-self:center;border-radius:8px;}
 .table-cover{width:36px;height:36px;object-fit:cover;border-radius:4px;}
 table{width:100%;border-collapse:collapse;table-layout:fixed;}
-thead th{position:sticky;top:0;background:#f8fafc;padding:10px;text-align:left;}
+thead th{position:sticky;top:0;background:#f8fafc;padding:10px;text-align:left;z-index:1;}
 th:nth-child(1){width:55px;}th:nth-child(2){width:25%;}th:nth-child(3){width:16%;}th:nth-child(4){width:24%;}th:nth-child(5){width:12%;}th:nth-child(6){width:12%;}
 td{padding:8px 10px;border-bottom:1px solid #f0f0f0;word-break:break-word;}
 .metadata-section{border-top:1px solid #e5e7eb;padding-top:8px;margin-top:8px;}
