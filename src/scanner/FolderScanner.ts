@@ -42,8 +42,8 @@ export class FolderScanner {
         lyrics_path: metadata.lyricsPath,
         embedded_lyrics:
           metadata.lyrics?.embedded?.content ?? undefined,
-        cover_data_url: metadata.coverDataUrl,
-        cover_exist: Boolean(metadata.coverDataUrl || metadata.cover),
+        cover_path: metadata.coverPath,
+        cover_exist: Boolean(metadata.coverPath),
       });
     }
 
