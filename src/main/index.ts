@@ -6,14 +6,17 @@ import { registerIPCHandlers } from './ipc';
 function getPreloadPath() {
   const candidates = [
     path.join(__dirname, '../preload/index.js'),
+    path.join(__dirname, '../preload/index.mjs'),
     path.join(__dirname, '../preload.js'),
     path.join(__dirname, 'preload.js'),
+    path.join(__dirname, 'preload.mjs'),
   ];
 
   const preloadPath = candidates.find((file) => existsSync(file));
 
   if (!preloadPath) {
     console.error('未找到 preload 文件:', candidates);
+    console.error('当前 __dirname:', __dirname);
     return candidates[0];
   }
 
