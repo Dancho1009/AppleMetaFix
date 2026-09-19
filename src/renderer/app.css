@@ -13,12 +13,16 @@ input{padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;}
 .dashboard-tag{background:#f3f4f6;padding:3px 8px;border-radius:6px;}
 .music-layout{display:flex;gap:14px;align-items:stretch;height:calc(100vh - 210px);}
 .song-card{flex:1;min-width:0;display:flex;flex-direction:column;}
-.detail-panel{width:360px;min-width:360px;overflow-y:auto;}
-.detail-cover{width:260px;height:260px;object-fit:contain;}
+.detail-panel{width:360px;min-width:360px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.detail-cover{width:260px;height:260px;object-fit:contain;align-self:center;border-radius:8px;}
 .table-cover{width:36px;height:36px;object-fit:cover;border-radius:4px;}
 table{width:100%;border-collapse:collapse;table-layout:fixed;}
 thead th{position:sticky;top:0;background:#f8fafc;padding:10px;text-align:left;}
-th:nth-child(1){width:55px;}th:nth-child(2){width:28%;}th:nth-child(3){width:18%;}th:nth-child(4){width:28%;}th:nth-child(5){width:12%;}
+th:nth-child(1){width:55px;}th:nth-child(2){width:25%;}th:nth-child(3){width:16%;}th:nth-child(4){width:24%;}th:nth-child(5){width:12%;}th:nth-child(6){width:12%;}
 td{padding:8px 10px;border-bottom:1px solid #f0f0f0;word-break:break-word;}
 tr:hover{background:#eff6ff;}
-.cover-empty{color:#9ca3af;}
+.cover-empty{color:#9ca3af;height:260px;width:260px;display:flex;align-items:center;justify-content:center;background:#f3f4f6;border-radius:8px;}
+.metadata-section{border-top:1px solid #e5e7eb;padding-top:8px;margin-top:8px;}
+.metadata-section h4{margin:4px 0 8px;font-size:14px;}
+.lyrics-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.lyrics-viewer{max-height:260px;overflow:auto;white-space:pre-wrap;background:#f8fafc;border-radius:8px;padding:10px;font-family:inherit;line-height:1.6;}
