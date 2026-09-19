@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { MetadataScanner, AudioMetadata } from "./MetadataScanner";
+import { upsertSong } from "../database/songRepository";
 
 const AUDIO_EXTENSIONS = new Set([
   ".flac",
@@ -20,7 +21,23 @@ export class FolderScanner {
     const results: AudioMetadata[] = [];
 
     for (const file of files) {
-      results.push(await this.metadataScanner.scanFile(file));
+      const metadata = await this.metadataScanner.scanFile(file);
+      results.push(metadata);
+
+      upsertSong({
+        path: metadata.path,
+        filename: path.basename(metadata.path),
+        title: metadata.title,
+        artist: metadata.artist,
+        album: metadata.album,
+        genre: metadata.genre,
+        year: metadata.year,
+        duration: metadata.duration,
+        format: metadata.format,
+        bitrate: metadata.bitrate,
+        lyrics_type: metadata.lyricsType,
+        cover_exist: Boolean(metadata.cover),
+      });
     }
 
     return results;
