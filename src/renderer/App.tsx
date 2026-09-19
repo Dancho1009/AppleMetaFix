@@ -14,6 +14,13 @@ function getTags(song:SongItem){
  return tags;
 }
 
+function getLyricsLabel(song:SongItem){
+ const type=song.lyrics?.type;
+ if(type==="embedded") return "内嵌歌词";
+ if(type==="external") return "外置歌词";
+ return "无歌词";
+}
+
 export default function App(){
  const [status,setStatus]=useState("等待扫描音乐库...");
  const [folder,setFolder]=useState("");
@@ -55,7 +62,7 @@ export default function App(){
        <td>{s.title||"-"}</td>
        <td>{s.artist||"-"}</td>
        <td>{s.album||"-"}</td>
-       <td>{s.lyrics?.type||"none"}</td>
+       <td>{getLyricsLabel(s)}</td>
        <td>{getTags(s).join(" / ")}</td>
       </tr>)}</tbody>
      </table>
@@ -67,7 +74,7 @@ export default function App(){
     <p><b>标题：</b>{selectedSong.title||"-"}</p>
     <p><b>艺术家：</b>{selectedSong.artist||"-"}</p>
     <p><b>专辑：</b>{selectedSong.album||"-"}</p>
-    <p><b>歌词：</b>{selectedSong.lyrics?.type||"none"}</p>
+    <p><b>歌词：</b>{getLyricsLabel(selectedSong)}</p>
     <p><b>已有标签：</b>{getTags(selectedSong).join("、")||"无"}</p>
    </aside>}
   </section>
