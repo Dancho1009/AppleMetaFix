@@ -9,6 +9,11 @@
     "preview": "electron-vite preview",
     "start": "electron .",
     "typecheck": "tsc --noEmit",
+    "test:apple-catalog": "tsx src/test/appleMusicCatalogTest.ts",
+    "test:metadata-match": "tsx src/test/metadataMatchAppleTest.ts",
+    "test:metadata-search": "tsx src/test/metadataSearchCliTest.ts",
+    "test:local-pipeline": "tsx src/test/localMetadataPipelineTest.ts",
+    "test:audio-reader": "tsx src/test/audioMetadataReaderTest.ts",
     "postinstall": "electron-builder install-app-deps"
   },
   "keywords": ["music", "metadata", "apple-music", "electron"],
@@ -18,6 +23,7 @@
     "electron": "^39.0.0",
     "electron-builder": "latest",
     "electron-vite": "^5.0.0",
+    "tsx": "latest",
     "typescript": "latest",
     "vite": "^7.3.6"
   },

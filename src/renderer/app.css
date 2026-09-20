@@ -13,6 +13,10 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 thead th{position:sticky;top:0;background:#f8fafc;padding:10px;text-align:left;z-index:1;}
 th:nth-child(1){width:55px;}th:nth-child(2){width:25%;}th:nth-child(3){width:16%;}th:nth-child(4){width:24%;}th:nth-child(5){width:12%;}th:nth-child(6){width:12%;}
 td{padding:8px 10px;border-bottom:1px solid #f0f0f0;word-break:break-word;}
+tr{cursor:pointer;}
+tr.selected-song{background:#e8f0ff;}
+tr.selected-song td:first-child{box-shadow:inset 3px 0 0 #2563eb;}
+tr:hover{background:#f8fafc;}
 .metadata-section{border-top:1px solid #e5e7eb;padding-top:8px;margin-top:8px;}
 .lyrics-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .lyrics-actions .active{background:#1d4ed8;}
