@@ -1,4 +1,4 @@
-import { AppleMusicDeveloperAuthProvider } from "./AppleMusicDeveloperAuthProvider";
+import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
 
 export interface TrackMetadata {
   id?: string;
@@ -32,27 +32,34 @@ interface AppleMusicSearchResponse {
 
 export class AppleMusicProvider {
   private storefront: string;
-  private developerAuth: AppleMusicDeveloperAuthProvider;
+  private authProvider: AppleMusicAuthProvider;
+  private mediaUserToken?: string;
 
-  constructor(options?: { storefront?: string; developerToken?: string }) {
+  constructor(options?: { storefront?: string; mediaUserToken?: string }) {
     this.storefront = options?.storefront ?? process.env.APPLE_MUSIC_STOREFRONT ?? "us";
-    this.developerAuth = new AppleMusicDeveloperAuthProvider(options?.developerToken);
+    this.mediaUserToken = options?.mediaUserToken ?? process.env.APPLE_MUSIC_MEDIA_USER_TOKEN;
+    this.authProvider = new AppleMusicAuthProvider();
   }
 
   async searchTrack(title: string, artist?: string, album?: string): Promise<TrackMetadata[]> {
     const term = [artist, title, album].filter(Boolean).join(" ");
+    const auth = await this.authProvider.getAuthorizationToken();
 
-    const url = new URL(`https://api.music.apple.com/v1/catalog/${this.storefront}/search`);
+    const url = new URL(`https://amp-api.music.apple.com/v1/catalog/${this.storefront}/search`);
     url.searchParams.set("term", term);
     url.searchParams.set("types", "songs");
     url.searchParams.set("limit", "10");
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        ...this.developerAuth.getAuthorizationHeader(),
-      },
-    });
+    const headers: Record<string, string> = {
+      "User-Agent": "Mozilla/5.0",
+      Authorization: `Bearer ${auth.token}`,
+    };
+
+    if (this.mediaUserToken) {
+      headers["Music-User-Token"] = this.mediaUserToken;
+    }
+
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       const text = await response.text();
