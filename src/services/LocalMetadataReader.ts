@@ -14,7 +14,7 @@ export class LocalMetadataReader {
       artist: common.artist,
       album: common.album,
       year: common.year,
-      durationInSeconds: format.duration,
+      durationMs: format.duration ? Math.round(format.duration * 1000) : undefined,
       bitrate: format.bitrate,
       sampleRate: format.sampleRate,
       bitDepth: format.bitsPerSample,
