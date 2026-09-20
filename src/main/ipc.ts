@@ -3,10 +3,10 @@ import path from "node:path";
 import { exec } from "node:child_process";
 import { FolderScanner } from "../scanner/FolderScanner";
 import { getSongByPath } from "../database/songRepository";
-import { MetadataMatchService } from "../services/MetadataMatchService";
+import { MetadataMatchPipeline } from "../services/MetadataMatchPipeline";
 
 const folderScanner = new FolderScanner();
-const metadataMatchService = new MetadataMatchService();
+const metadataMatchPipeline = new MetadataMatchPipeline();
 
 function logIPC(name: string, payload?: unknown) {
   console.log(`[IPC] ${name}`, payload ?? "");
@@ -32,16 +32,12 @@ export function registerIPCHandlers() {
       properties: ["openDirectory"],
     });
 
-    if (result.canceled || result.filePaths.length === 0) {
-      return null;
-    }
-
+    if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0];
   });
 
   ipcMain.handle("scan-folder", async (event, folderPath: string) => {
     logIPC("scan-folder", folderPath);
-
     return folderScanner.scanFolder(folderPath, (progress) => {
       event.sender.send("scan-progress", progress);
     });
@@ -52,13 +48,8 @@ export function registerIPCHandlers() {
   });
 
   ipcMain.handle("match-song", async (_event, song: any) => {
-    return metadataMatchService.match({
-      title: song.title ?? "",
-      artist: song.artist,
-      album: song.album,
-      duration: song.duration,
-      year: song.year,
-    }, []);
+    if (!song?.path) return null;
+    return metadataMatchPipeline.process(song.path);
   });
 
   ipcMain.handle("open-file-location", async (_event, filePath: string) => {
