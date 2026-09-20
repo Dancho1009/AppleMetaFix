@@ -3,11 +3,23 @@ import React, {useMemo, useState} from "react";
 export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
  const api:any=(window as any).appleMetaFix;
  const [lyricsMode,setLyricsMode]=useState<"embedded"|"external">("embedded");
+ const [matching,setMatching]=useState(false);
+ const [matchResult,setMatchResult]=useState<any>(null);
  const cover=song.coverDataUrl || (song.coverPath ? `file:///${encodeURI(song.coverPath.replace(/\\\\/g,"/"))}` : "");
 
  const embedded=song.lyrics?.embedded?.content || song.embeddedLyrics || "";
  const external=song.lyrics?.external?.content || "";
  const lyrics=useMemo(()=>lyricsMode==="external" ? external : embedded,[lyricsMode,embedded,external]);
+
+ const matchSong=async()=>{
+  setMatching(true);
+  try{
+   const result=await api.matchSong(song);
+   setMatchResult(result);
+  }finally{
+   setMatching(false);
+  }
+ };
 
  return <aside className="card detail-panel">
   <button onClick={onClose}>关闭</button>
@@ -23,6 +35,19 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
    <p>作曲家：{song.composer||"-"}</p>
    <p>流派：{song.genre||"-"}</p>
    <p>年份：{song.year||"-"}</p>
+  </section>
+
+  <section className="match-section">
+   <button onClick={matchSong} disabled={matching}>
+    {matching ? "匹配中..." : "匹配 Apple Music"}
+   </button>
+   {matchResult?.match && <div>
+    <h4>Apple Music结果</h4>
+    <p>标题：{matchResult.match.track.title}</p>
+    <p>艺术家：{matchResult.match.track.artist}</p>
+    <p>评分：{matchResult.match.score}</p>
+    <p>置信度：{matchResult.match.confidence}</p>
+   </div>}
   </section>
 
   <section className="audio-info-block">
