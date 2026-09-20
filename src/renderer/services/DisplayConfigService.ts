@@ -7,6 +7,7 @@ export interface DisplayField {
 const defaultFields: DisplayField[] = [
   { key: "artwork", label: "封面", enabled: true },
   { key: "title", label: "标题", enabled: true },
+  { key: "artist", label: "艺术家", enabled: true },
   { key: "album", label: "专辑", enabled: true },
   { key: "genre", label: "流派", enabled: true },
   { key: "releaseDate", label: "发行日期", enabled: true },
