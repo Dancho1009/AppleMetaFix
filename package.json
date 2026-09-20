@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:apple-catalog": "tsx src/test/appleMusicCatalogTest.ts",
     "test:metadata-match": "tsx src/test/metadataMatchAppleTest.ts",
+    "test:metadata-search": "tsx src/test/metadataSearchCliTest.ts",
     "test:local-pipeline": "tsx src/test/localMetadataPipelineTest.ts",
     "test:audio-reader": "tsx src/test/audioMetadataReaderTest.ts",
     "postinstall": "electron-builder install-app-deps"

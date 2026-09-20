@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("appleMetaFix", {
   selectFolder: () => ipcRenderer.invoke("select-folder"),
   scanFolder: (folderPath: string) => ipcRenderer.invoke("scan-folder", folderPath),
   getSongDetail: (filePath: string) => ipcRenderer.invoke("get-song-detail", filePath),
+  matchSong: (song: any) => ipcRenderer.invoke("match-song", song),
   onScanProgress: (callback: (progress: any) => void) => {
     ipcRenderer.on("scan-progress", (_event, progress) => callback(progress));
   },

@@ -24,3 +24,13 @@ export class AudioMetadataReader {
     };
   }
 }
+
+/**
+ * 兼容命令行测试入口的文件 Metadata 读取方法
+ */
+export async function parseFileMetadata(
+  filePath: string
+): Promise<LocalTrackMetadata> {
+  const reader = new AudioMetadataReader();
+  return reader.read(filePath);
+}

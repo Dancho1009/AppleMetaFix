@@ -1,4 +1,5 @@
 import { parseFile } from "music-metadata";
+import { statSync } from "fs";
 import { LyricsScanner } from "./LyricsScanner";
 import { MetadataQuality, analyzeMetadataQuality } from "./MetadataQuality";
 import { saveCoverToCache } from "./CoverCache";
@@ -22,6 +23,8 @@ export interface AudioMetadata {
   format?: string;
   bitrate?: number;
   sampleRate?: number;
+  bitDepth?: number;
+  size?: number;
   quality?: MetadataQuality;
 }
 
@@ -63,6 +66,8 @@ export class MetadataScanner {
       format: format.container,
       bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
       sampleRate: format.sampleRate,
+      bitDepth: format.bitsPerSample,
+      size: statSync(filePath).size,
     };
 
     result.quality = analyzeMetadataQuality(result);
