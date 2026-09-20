@@ -36,7 +36,9 @@ export class MetadataMatchService {
     const results = candidates.map((track) => {
       const detail = this.scoreDetails(local, track);
       const score = Math.round(
-        Object.values(detail).reduce((sum, item) => sum + item.score * item.weight, 0) / 100
+        Object.values(detail)
+          .filter((item) => item.weight > 0)
+          .reduce((sum, item) => sum + item.score * item.weight, 0) / 100
       );
 
       return {
@@ -63,7 +65,7 @@ export class MetadataMatchService {
       },
       artist: {
         score: Math.round(this.similarity(local.artist ?? "", track.artist) * 100),
-        weight: 35,
+        weight: 30,
         reason: "艺术家匹配度",
       },
       album: {
@@ -77,8 +79,8 @@ export class MetadataMatchService {
       const diff = Math.abs(local.duration - track.durationInMillis / 1000);
       details.duration = {
         score: diff <= 2 ? 100 : diff <= 5 ? 80 : diff <= 10 ? 50 : 0,
-        weight: 0,
-        reason: `时长差${diff.toFixed(1)}秒，仅作为辅助参考`,
+        weight: 5,
+        reason: `时长差${diff.toFixed(1)}秒`,
       };
     }
 
