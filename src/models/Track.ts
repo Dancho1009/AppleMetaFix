@@ -4,7 +4,7 @@ export interface LocalTrack {
   artist?: string;
   album?: string;
   year?: number;
-  durationInSeconds?: number;
+  durationMs?: number;
   bitrate?: number;
   sampleRate?: number;
   bitDepth?: number;
