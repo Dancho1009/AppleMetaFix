@@ -45,21 +45,25 @@ export class AppleMusicProvider {
     const term = [artist, title, album].filter(Boolean).join(" ");
     const auth = await this.authProvider.getAuthorizationToken();
 
+    if (!this.mediaUserToken) {
+      throw new Error("缺少 APPLE_MUSIC_MEDIA_USER_TOKEN");
+    }
+
     const url = new URL(`https://amp-api.music.apple.com/v1/catalog/${this.storefront}/search`);
     url.searchParams.set("term", term);
     url.searchParams.set("types", "songs");
     url.searchParams.set("limit", "10");
 
-    const headers: Record<string, string> = {
-      "User-Agent": "Mozilla/5.0",
-      Authorization: `Bearer ${auth.token}`,
-    };
-
-    if (this.mediaUserToken) {
-      headers["Music-User-Token"] = this.mediaUserToken;
-    }
-
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+        "Music-User-Token": this.mediaUserToken,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        Origin: "https://music.apple.com",
+        Referer: "https://music.apple.com/",
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
       const text = await response.text();
