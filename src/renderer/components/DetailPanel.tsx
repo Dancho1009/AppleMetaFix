@@ -1,11 +1,12 @@
 import React, {useMemo, useState} from "react";
+import {formatDuration, getMatchResultFields, getMatchResultValue} from "../services/DisplayConfigService";
 
 export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
  const api:any=(window as any).appleMetaFix;
  const [lyricsMode,setLyricsMode]=useState<"embedded"|"external">("embedded");
  const [matching,setMatching]=useState(false);
  const [matchResult,setMatchResult]=useState<any>(null);
- const cover=song.coverDataUrl || (song.coverPath ? `file:///${encodeURI(song.coverPath.replace(/\\\\/g,"/"))}` : "");
+ const cover=song.coverDataUrl || (song.coverPath ? `file:///${encodeURI(song.coverPath.replace(/\\/g,"/"))}` : "");
 
  const embedded=song.lyrics?.embedded?.content || song.embeddedLyrics || "";
  const external=song.lyrics?.external?.content || "";
@@ -15,17 +16,18 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
   console.log("[MATCH:UI] 点击匹配", song);
   setMatching(true);
   try{
-   console.log("[MATCH:UI] 请求IPC match-song");
    const result=await api.matchSong(song);
    console.log("[MATCH:UI] 返回结果", result);
    setMatchResult(result);
   }catch(error){
    console.error("[MATCH:UI] 匹配异常", error);
   }finally{
-   console.log("[MATCH:UI] 匹配流程结束");
    setMatching(false);
   }
  };
+
+ const matchFields=getMatchResultFields();
+ const appleMatch=matchResult?.match;
 
  return <aside className="card detail-panel">
   <button onClick={onClose}>关闭</button>
@@ -47,12 +49,21 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
    <button onClick={matchSong} disabled={matching}>
     {matching ? "匹配中..." : "匹配 Apple Music"}
    </button>
-   {matchResult?.match && <div>
+
+   {appleMatch && <div>
     <h4>Apple Music结果</h4>
-    <p>标题：{matchResult.match.track.title}</p>
-    <p>艺术家：{matchResult.match.track.artist}</p>
-    <p>评分：{matchResult.match.score}</p>
-    <p>置信度：{matchResult.match.confidence}</p>
+    {matchFields.map(field=>{
+      let value=getMatchResultValue(appleMatch, field.key);
+      if(field.key === "durationInMillis") value=formatDuration(value);
+      if(field.key === "artwork" && value !== "-") {
+        return <div key={field.key}>
+          <p>{field.label}</p>
+          <img className="detail-cover" src={value.replace("{w}x{h}", "300x300")} alt="apple artwork"/>
+        </div>;
+      }
+      return <p key={field.key}>{field.label}：{value}</p>;
+    })}
+    <p>艺术家：{appleMatch.track?.artist || "-"}</p>
    </div>}
   </section>
 
