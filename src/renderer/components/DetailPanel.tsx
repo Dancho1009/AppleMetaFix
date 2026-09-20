@@ -12,11 +12,17 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
  const lyrics=useMemo(()=>lyricsMode==="external" ? external : embedded,[lyricsMode,embedded,external]);
 
  const matchSong=async()=>{
+  console.log("[MATCH:UI] 点击匹配", song);
   setMatching(true);
   try{
+   console.log("[MATCH:UI] 请求IPC match-song");
    const result=await api.matchSong(song);
+   console.log("[MATCH:UI] 返回结果", result);
    setMatchResult(result);
+  }catch(error){
+   console.error("[MATCH:UI] 匹配异常", error);
   }finally{
+   console.log("[MATCH:UI] 匹配流程结束");
    setMatching(false);
   }
  };
