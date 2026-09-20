@@ -15,8 +15,8 @@ export interface MatchResult {
 }
 
 export class MetadataMatchService {
-  match(local: LocalTrackInfo, candidates: TrackMetadata[]): MatchResult | null {
-    if (!candidates.length) return null;
+  match(local: LocalTrackInfo, candidates?: TrackMetadata[] | null): MatchResult | null {
+    if (!candidates || candidates.length === 0) return null;
 
     const results = candidates.map((track) => ({
       track,
