@@ -3,8 +3,10 @@ import path from "node:path";
 import { exec } from "node:child_process";
 import { FolderScanner } from "../scanner/FolderScanner";
 import { getSongByPath } from "../database/songRepository";
+import { MetadataMatchService } from "../services/MetadataMatchService";
 
 const folderScanner = new FolderScanner();
+const metadataMatchService = new MetadataMatchService();
 
 function logIPC(name: string, payload?: unknown) {
   console.log(`[IPC] ${name}`, payload ?? "");
@@ -12,7 +14,7 @@ function logIPC(name: string, payload?: unknown) {
 
 function openWindowsPath(targetPath: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const command = `start "" "${targetPath}"`;
+    const command = `start \"\" \"${targetPath}\"`;
     exec(command, (error) => {
       if (error) {
         console.error("[IPC] Windows start failed:", error);
@@ -47,6 +49,16 @@ export function registerIPCHandlers() {
 
   ipcMain.handle("get-song-detail", async (_event, filePath: string) => {
     return getSongByPath(filePath);
+  });
+
+  ipcMain.handle("match-song", async (_event, song: any) => {
+    return metadataMatchService.match({
+      title: song.title ?? "",
+      artist: song.artist,
+      album: song.album,
+      duration: song.duration,
+      year: song.year,
+    }, []);
   });
 
   ipcMain.handle("open-file-location", async (_event, filePath: string) => {
