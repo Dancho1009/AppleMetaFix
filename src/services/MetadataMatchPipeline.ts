@@ -12,9 +12,16 @@ export class MetadataMatchPipeline {
 
     const candidates = await this.appleMusic.searchTrack(
       localTrack.title ?? "",
-      localTrack.artist ?? ""
+      localTrack.artist ?? "",
+      localTrack.album,
     );
 
-    return this.matcher.match(localTrack, candidates);
+    const match = this.matcher.match(localTrack, candidates);
+
+    return {
+      localTrack,
+      match,
+      candidates,
+    };
   }
 }
