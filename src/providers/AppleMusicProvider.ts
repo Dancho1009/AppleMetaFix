@@ -1,4 +1,4 @@
-import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
+import { AppleMusicDeveloperAuthProvider } from "./AppleMusicDeveloperAuthProvider";
 
 export interface TrackMetadata {
   id?: string;
@@ -32,17 +32,11 @@ interface AppleMusicSearchResponse {
 
 export class AppleMusicProvider {
   private storefront: string;
-  private developerToken?: string;
-  private mediaUserToken?: string;
+  private developerAuth: AppleMusicDeveloperAuthProvider;
 
-  constructor(options?: {
-    storefront?: string;
-    developerToken?: string;
-    mediaUserToken?: string;
-  }) {
+  constructor(options?: { storefront?: string; developerToken?: string }) {
     this.storefront = options?.storefront ?? process.env.APPLE_MUSIC_STOREFRONT ?? "us";
-    this.developerToken = options?.developerToken ?? process.env.APPLE_MUSIC_DEVELOPER_TOKEN;
-    this.mediaUserToken = options?.mediaUserToken ?? process.env.APPLE_MUSIC_MEDIA_USER_TOKEN;
+    this.developerAuth = new AppleMusicDeveloperAuthProvider(options?.developerToken);
   }
 
   async searchTrack(title: string, artist?: string, album?: string): Promise<TrackMetadata[]> {
@@ -53,22 +47,12 @@ export class AppleMusicProvider {
     url.searchParams.set("types", "songs");
     url.searchParams.set("limit", "10");
 
-    const headers: Record<string, string> = {
-      "User-Agent": "Mozilla/5.0",
-    };
-
-    if (this.developerToken) {
-      headers.Authorization = `Bearer ${this.developerToken}`;
-    } else {
-      const auth = await new AppleMusicAuthProvider().getAuthorizationToken();
-      headers.Authorization = `Bearer ${auth.token}`;
-    }
-
-    if (this.mediaUserToken) {
-      headers["Music-User-Token"] = this.mediaUserToken;
-    }
-
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        ...this.developerAuth.getAuthorizationHeader(),
+      },
+    });
 
     if (!response.ok) {
       const text = await response.text();
