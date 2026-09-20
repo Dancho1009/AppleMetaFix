@@ -41,8 +41,8 @@ export class AppleMusicProvider {
     mediaUserToken?: string;
   }) {
     this.storefront = options?.storefront ?? "us";
-    this.developerToken = options?.developerToken;
-    this.mediaUserToken = options?.mediaUserToken;
+    this.developerToken = options?.developerToken ?? process.env.APPLE_MUSIC_DEVELOPER_TOKEN;
+    this.mediaUserToken = options?.mediaUserToken ?? process.env.APPLE_MUSIC_MEDIA_USER_TOKEN;
   }
 
   async searchTrack(
@@ -69,7 +69,7 @@ export class AppleMusicProvider {
     }
 
     if (this.mediaUserToken) {
-      headers["Media-User-Token"] = this.mediaUserToken;
+      headers["Music-User-Token"] = this.mediaUserToken;
     }
 
     const response = await fetch(url, { headers });
