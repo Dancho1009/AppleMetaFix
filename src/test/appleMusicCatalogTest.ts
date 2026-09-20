@@ -7,7 +7,7 @@ async function main() {
 
   const result = await provider.searchTrack("Hotel California", "Eagles");
 
-  console.log(JSON.stringify(result.slice(0, 3), null, 2));
+  console.log(JSON.stringify(result, null, 2));
 }
 
 main().catch((error) => {
