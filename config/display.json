@@ -12,6 +12,11 @@
         "enabled": true
       },
       {
+        "key": "artist",
+        "label": "艺术家",
+        "enabled": true
+      },
+      {
         "key": "album",
         "label": "专辑",
         "enabled": true
