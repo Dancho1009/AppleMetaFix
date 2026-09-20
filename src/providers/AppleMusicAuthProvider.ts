@@ -1,3 +1,5 @@
+import { getMediaUserToken } from "../config/AppConfig";
+
 export type AppleMusicAuthType = "media-user-token" | "authorization-token";
 
 export interface AppleMusicAuthInfo {
@@ -25,7 +27,8 @@ export class AppleMusicAuthProvider {
       };
     }
 
-    const mediaUserToken = process.env.APPLE_MUSIC_MEDIA_USER_TOKEN;
+    const mediaUserToken =
+      process.env.APPLE_MUSIC_MEDIA_USER_TOKEN ?? getMediaUserToken();
 
     if (mediaUserToken) {
       return {
@@ -47,15 +50,12 @@ export class AppleMusicAuthProvider {
         },
       });
 
-      if (!response.ok) {
-        return null;
-      }
+      if (!response.ok) return null;
 
       const html = await response.text();
-
-      const scripts = [
-        ...html.matchAll(/\/assets\/[^"']+\.js/g),
-      ].map((item) => item[0]);
+      const scripts = [...html.matchAll(/\/assets\/[^"']+\.js/g)].map(
+        (item) => item[0],
+      );
 
       for (const script of scripts) {
         const jsResponse = await fetch(`https://music.apple.com${script}`, {
@@ -64,18 +64,14 @@ export class AppleMusicAuthProvider {
           },
         });
 
-        if (!jsResponse.ok) {
-          continue;
-        }
+        if (!jsResponse.ok) continue;
 
         const js = await jsResponse.text();
         const token = js.match(
-          /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/
+          /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/,
         );
 
-        if (token?.[0]) {
-          return token[0];
-        }
+        if (token?.[0]) return token[0];
       }
     } catch {
       return null;
