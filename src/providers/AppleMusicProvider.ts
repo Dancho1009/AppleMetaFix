@@ -1,3 +1,4 @@
+import { getMediaUserToken, loadConfig } from "../config/AppConfig";
 import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
 
 export interface TrackMetadata {
@@ -36,8 +37,16 @@ export class AppleMusicProvider {
   private mediaUserToken?: string;
 
   constructor(options?: { storefront?: string; mediaUserToken?: string }) {
-    this.storefront = options?.storefront ?? process.env.APPLE_MUSIC_STOREFRONT ?? "us";
-    this.mediaUserToken = options?.mediaUserToken ?? process.env.APPLE_MUSIC_MEDIA_USER_TOKEN;
+    const config = loadConfig();
+    this.storefront =
+      options?.storefront ??
+      process.env.APPLE_MUSIC_STOREFRONT ??
+      config.appleMusic?.storefront ??
+      "us";
+    this.mediaUserToken =
+      options?.mediaUserToken ??
+      process.env.APPLE_MUSIC_MEDIA_USER_TOKEN ??
+      getMediaUserToken();
     this.authProvider = new AppleMusicAuthProvider();
   }
 
@@ -46,7 +55,7 @@ export class AppleMusicProvider {
     const auth = await this.authProvider.getAuthorizationToken();
 
     if (!this.mediaUserToken) {
-      throw new Error("缺少 APPLE_MUSIC_MEDIA_USER_TOKEN");
+      throw new Error("缺少 Apple Music media-user-token");
     }
 
     const url = new URL(`https://amp-api.music.apple.com/v1/catalog/${this.storefront}/search`);
