@@ -35,8 +35,18 @@ export class MetadataMatchService {
  }
  private durationScore(local?:number,remote?:number){
   if(!local||!remote)return 0;
-  const diff=Math.abs((local>10000?local/1000:local)-remote/1000);
-  if(diff<=2)return 100;if(diff<=5)return 90;if(diff<=10)return 70;if(diff<=30)return 30;return 0;
+
+  // 本地扫描 duration 可能是秒，也可能是毫秒，统一转换为毫秒比较
+  const localMs = local < 10000 ? local * 1000 : local;
+  const remoteMs = remote < 10000 ? remote * 1000 : remote;
+
+  const diffSeconds=Math.abs(localMs-remoteMs)/1000;
+
+  if(diffSeconds<=2)return 100;
+  if(diffSeconds<=5)return 90;
+  if(diffSeconds<=10)return 70;
+  if(diffSeconds<=30)return 30;
+  return 0;
  }
  private extractArtistNames(v:string){return v.split(/[&,\/]/).flatMap(x=>[x,...((x.match(/CV[.:\s]*([^)&]+)/i)||[]).slice(1))]);}
  private normalizeArtist(v:string){return v.toLowerCase().replace(/\s+/g,"").replace(/[（）()\[\]【】]/g,"").replace(/cv[.:]/gi,"").replace(/[^a-z0-9\u3040-\u30ff\u4e00-\u9fff]/g,"");}
