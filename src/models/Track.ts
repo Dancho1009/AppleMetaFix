@@ -5,6 +5,11 @@ export interface LocalTrack {
   album?: string;
   year?: number;
   durationInSeconds?: number;
+  bitrate?: number;
+  sampleRate?: number;
+  bitDepth?: number;
+  size?: number;
+  format?: string;
 }
 
 export interface MatchResult {
