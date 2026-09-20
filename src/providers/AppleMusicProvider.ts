@@ -2,14 +2,44 @@ import { getMediaUserToken, loadConfig } from "../config/AppConfig";
 import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
 
 export interface TrackMetadata {
+  // Apple Music 标识
   id?: string;
+
+  // 基础信息
   title?: string;
   artist?: string;
   album?: string;
+
+  // 时间信息
   releaseDate?: string;
-  artwork?: string;
-  isrc?: string;
+  durationInMillis?: number;
+
+  // 分类信息
   genre?: string[];
+
+  // 封面
+  artwork?: string;
+
+  // 唯一标识
+  isrc?: string;
+
+  // 关联资源
+  artistId?: string;
+  albumId?: string;
+
+  // 创作者及版权
+  composer?: string;
+  copyright?: string;
+
+  // 音频及歌词信息
+  audioLocale?: string;
+  hasLyrics?: boolean;
+
+  // Apple Music链接
+  url?: string;
+
+  // 保留Apple Music原始响应
+  raw?: unknown;
 }
 
 interface AppleMusicSearchResponse {
@@ -21,10 +51,19 @@ interface AppleMusicSearchResponse {
           name?: string;
           artistName?: string;
           albumName?: string;
+          artistId?: string;
+          albumId?: string;
           releaseDate?: string;
+          durationInMillis?: number;
           genreNames?: string[];
           isrc?: string;
+          composerName?: string;
+          copyright?: string;
+          audioLocale?: string;
+          hasLyrics?: boolean;
+          url?: string;
           artwork?: { url?: string };
+          [key: string]: unknown;
         };
       }>;
     };
@@ -124,9 +163,18 @@ export class AppleMusicProvider {
       artist: item.attributes.artistName,
       album: item.attributes.albumName,
       releaseDate: item.attributes.releaseDate,
+      durationInMillis: item.attributes.durationInMillis,
       isrc: item.attributes.isrc,
       genre: item.attributes.genreNames,
       artwork: item.attributes.artwork?.url,
+      artistId: item.attributes.artistId,
+      albumId: item.attributes.albumId,
+      composer: item.attributes.composerName,
+      copyright: item.attributes.copyright,
+      audioLocale: item.attributes.audioLocale,
+      hasLyrics: item.attributes.hasLyrics,
+      url: item.attributes.url,
+      raw: item,
     }));
   }
 }
