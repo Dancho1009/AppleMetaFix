@@ -14,7 +14,10 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
  const appleMatch=matchResult?.match;
  const matchFields=getMatchResultFields();
  const scoreDetails=appleMatch?.scoreDetails || appleMatch?.details || appleMatch?.analysis || {};
- const localDuration=song.duration ?? song.durationInMillis;
+
+ // music-metadata 返回 duration 为秒，Apple Music durationInMillis 为毫秒
+ const localDurationMs = song.durationInMillis ?? (song.duration ? song.duration * 1000 : undefined);
+
  return <aside className="card detail-panel">
   <button onClick={onClose}>关闭</button>
   {cover ? <img className="detail-cover" src={cover} alt="cover"/> : <div className="cover-empty">暂无封面</div>}
@@ -26,7 +29,7 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
    <p>作曲家：{song.composer||"-"}</p>
    <p>流派：{song.genre||"-"}</p>
    <p>年份：{song.year||"-"}</p>
-   <p>时长：{localDuration ? formatDuration(localDuration) : "-"}</p>
+   <p>时长：{localDurationMs ? formatDuration(localDurationMs) : "-"}</p>
   </section>
   <section className="match-section">
    <button onClick={matchSong} disabled={matching}>{matching?"匹配中...":"匹配 Apple Music"}</button>
