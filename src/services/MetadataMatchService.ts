@@ -8,20 +8,43 @@ export interface LocalTrackInfo {
   year?: number;
 }
 
+export interface MatchScoreDetail {
+  score: number;
+  weight: number;
+  reason: string;
+}
+
+export interface MatchScoreDetails {
+  title: MatchScoreDetail;
+  artist: MatchScoreDetail;
+  album: MatchScoreDetail;
+  duration: MatchScoreDetail;
+  year: MatchScoreDetail;
+}
+
 export interface MatchResult {
   track: TrackMetadata;
   score: number;
   confidence: "high" | "medium" | "low";
+  scoreDetails: MatchScoreDetails;
 }
 
 export class MetadataMatchService {
   match(local: LocalTrackInfo, candidates?: TrackMetadata[] | null): MatchResult | null {
     if (!candidates || candidates.length === 0) return null;
 
-    const results = candidates.map((track) => ({
-      track,
-      score: this.score(local, track),
-    })).sort((a, b) => b.score - a.score);
+    const results = candidates.map((track) => {
+      const detail = this.scoreDetails(local, track);
+      const score = Math.round(
+        Object.values(detail).reduce((sum, item) => sum + item.score * item.weight, 0) / 100
+      );
+
+      return {
+        track,
+        score,
+        scoreDetails: detail,
+      };
+    }).sort((a, b) => b.score - a.score);
 
     const result = results[0];
 
@@ -31,28 +54,56 @@ export class MetadataMatchService {
     };
   }
 
-  private score(local: LocalTrackInfo, track: TrackMetadata): number {
-    let score = 0;
+  private scoreDetails(local: LocalTrackInfo, track: TrackMetadata): MatchScoreDetails {
     const titleScore = this.similarity(local.title, track.title);
     const artistScore = this.similarity(local.artist ?? "", track.artist);
     const albumScore = this.similarity(local.album ?? "", track.album ?? "");
 
-    score += titleScore * 35;
-    score += artistScore * 25;
-
-    if (local.album) score += albumScore * 15;
-    else if (titleScore === 1 && artistScore === 1) score += 15;
-
+    let durationScore = 0;
+    let durationReason = "无时长信息";
     if (local.duration && track.durationInMillis) {
       const diff = Math.abs(local.duration - track.durationInMillis / 1000);
-      if (diff <= 2) score += 15;
-      else if (diff <= 5) score += 12;
-      else if (diff <= 10) score += 8;
+      if (diff <= 2) {
+        durationScore = 100;
+        durationReason = `时长差${diff.toFixed(1)}秒，完全匹配`;
+      } else if (diff <= 5) {
+        durationScore = 80;
+        durationReason = `时长差${diff.toFixed(1)}秒，接近`;
+      } else if (diff <= 10) {
+        durationScore = 50;
+        durationReason = `时长差${diff.toFixed(1)}秒`;
+      }
     }
 
-    if (local.year && track.releaseDate?.startsWith(String(local.year))) score += 5;
+    const yearScore = local.year && track.releaseDate?.startsWith(String(local.year)) ? 100 : 0;
 
-    return Math.round(Math.min(Math.max(score, 0), 100));
+    return {
+      title: {
+        score: Math.round(titleScore * 100),
+        weight: 35,
+        reason: titleScore === 1 ? "标题完全匹配" : "标题部分匹配",
+      },
+      artist: {
+        score: Math.round(artistScore * 100),
+        weight: 25,
+        reason: artistScore === 1 ? "艺术家完全匹配" : "艺术家部分匹配",
+      },
+      album: {
+        score: Math.round(albumScore * 100),
+        weight: 15,
+        reason: albumScore === 1 ? "专辑完全匹配" : "专辑部分匹配",
+      },
+      duration: {
+        score: durationScore,
+        weight: 15,
+        reason: durationReason,
+      },
+      year: {
+        score: yearScore,
+        weight: 5,
+        reason: yearScore ? "发行年份匹配" : "发行年份未匹配",
+      },
+    };
   }
 
   private similarity(a: string, b?: string): number {
