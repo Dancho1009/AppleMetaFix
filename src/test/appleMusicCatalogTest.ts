@@ -5,7 +5,7 @@ async function main() {
 
   const provider = new AppleMusicCatalogProvider();
 
-  const result = await provider.searchTrack("Eagles", "Hotel California");
+  const result = await provider.searchTrack("Hotel California", "Eagles");
 
   console.log(JSON.stringify(result.slice(0, 3), null, 2));
 }
