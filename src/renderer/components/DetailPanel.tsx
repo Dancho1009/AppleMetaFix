@@ -10,19 +10,7 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
  const embedded=song.lyrics?.embedded?.content || song.embeddedLyrics || "";
  const external=song.lyrics?.external?.content || "";
  const lyrics=useMemo(()=>lyricsMode==="external" ? external : embedded,[lyricsMode,embedded,external]);
-
- const matchSong=async()=>{
-  setMatching(true);
-  try{
-   const result=await api.matchSong(song);
-   setMatchResult(result);
-  }catch(error){
-   console.error("[MATCH:UI] 匹配异常",error);
-  }finally{
-   setMatching(false);
-  }
- };
-
+ const matchSong=async()=>{setMatching(true);try{setMatchResult(await api.matchSong(song));}catch(error){console.error("[MATCH:UI] 匹配异常",error);}finally{setMatching(false);}};
  const appleMatch=matchResult?.match;
  const matchFields=getMatchResultFields();
  const scoreDetails=appleMatch?.scoreDetails || appleMatch?.details || appleMatch?.analysis || {};
@@ -39,28 +27,15 @@ export default function DetailPanel({song,onClose}:{song:any;onClose:()=>void}){
    <p>作曲家：{song.composer||"-"}</p>
    <p>流派：{song.genre||"-"}</p>
    <p>年份：{song.year||"-"}</p>
+   <p>时长：{formatDuration(song.durationInSeconds ? song.durationInSeconds * 1000 : song.durationInMillis)}</p>
   </section>
 
   <section className="match-section">
    <button onClick={matchSong} disabled={matching}>{matching?"匹配中...":"匹配 Apple Music"}</button>
-
    {appleMatch && <div>
     <h4>Apple Music结果</h4>
-    {matchFields.map(field=>{
-      let value=getMatchResultValue(appleMatch,field.key);
-      if(field.key==="durationInMillis") value=formatDuration(value);
-      if(field.key==="artwork" && value!=="-") return <div key={field.key}><p>{field.label}</p><img className="detail-cover" src={value.replace("{w}x{h}","300x300")} alt="apple artwork"/></div>;
-      return <p key={field.key}>{field.label}：{value}</p>;
-    })}
-
-    <details className="match-analysis">
-     <summary>查看评分详情</summary>
-     <div>
-      {Object.keys(scoreDetails).length>0 ? Object.entries(scoreDetails).map(([key,value]:any)=>(
-       <p key={key}>{key}：{typeof value === "object" ? JSON.stringify(value) : String(value)}</p>
-      )) : <p>暂无评分分析数据</p>}
-     </div>
-    </details>
+    {matchFields.map(field=>{let value=getMatchResultValue(appleMatch,field.key);if(field.key==="durationInMillis")value=formatDuration(value);if(field.key==="artwork"&&value!=="-")return <div key={field.key}><p>{field.label}</p><img className="detail-cover" src={value.replace("{w}x{h}","300x300")} alt="apple artwork"/></div>;return <p key={field.key}>{field.label}：{value}</p>;})}
+    <details className="match-analysis"><summary>查看评分详情</summary><div>{Object.keys(scoreDetails).length>0?Object.entries(scoreDetails).map(([key,value]:any)=><p key={key}>{key}：{typeof value === "object"?JSON.stringify(value):String(value)}</p>):<p>暂无评分分析数据</p>}</div></details>
    </div>}
   </section>
 
