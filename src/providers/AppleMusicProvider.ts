@@ -31,6 +31,14 @@ interface AppleMusicSearchResponse {
   };
 }
 
+function normalizeText(value?: string) {
+  return value
+    ?.normalize("NFKC")
+    .replace(/[.…·]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 export class AppleMusicProvider {
   private storefront: string;
   private authProvider: AppleMusicAuthProvider;
@@ -51,7 +59,30 @@ export class AppleMusicProvider {
   }
 
   async searchTrack(title: string, artist?: string, album?: string): Promise<TrackMetadata[]> {
-    const term = [artist, title, album].filter(Boolean).join(" ");
+    const terms = [
+      [title, artist, album],
+      [artist, title, album],
+      [title],
+    ].map((items) => items.filter(Boolean).join(" "));
+
+    for (const term of terms) {
+      const results = await this.search(term);
+
+      console.log("[APPLE] search", {
+        term,
+        count: results.length,
+        first: results[0],
+      });
+
+      if (results.length > 0) {
+        return results;
+      }
+    }
+
+    return [];
+  }
+
+  private async search(term: string): Promise<TrackMetadata[]> {
     const auth = await this.authProvider.getAuthorizationToken();
 
     if (!this.mediaUserToken) {
@@ -59,7 +90,7 @@ export class AppleMusicProvider {
     }
 
     const url = new URL(`https://amp-api.music.apple.com/v1/catalog/${this.storefront}/search`);
-    url.searchParams.set("term", term);
+    url.searchParams.set("term", normalizeText(term) ?? "");
     url.searchParams.set("types", "songs");
     url.searchParams.set("limit", "10");
 
@@ -67,7 +98,7 @@ export class AppleMusicProvider {
       headers: {
         Authorization: `Bearer ${auth.token}`,
         "Music-User-Token": this.mediaUserToken,
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "User-Agent": "Mozilla/5.0",
         Origin: "https://music.apple.com",
         Referer: "https://music.apple.com/",
         Accept: "application/json",
@@ -80,8 +111,14 @@ export class AppleMusicProvider {
     }
 
     const data = (await response.json()) as AppleMusicSearchResponse;
+    const songs = data.results?.songs?.data;
 
-    return data.results?.songs?.data?.map((item) => ({
+    if (!Array.isArray(songs)) {
+      console.log("[APPLE] invalid response", data);
+      return [];
+    }
+
+    return songs.map((item) => ({
       id: item.id,
       title: item.attributes.name,
       artist: item.attributes.artistName,
@@ -90,6 +127,6 @@ export class AppleMusicProvider {
       isrc: item.attributes.isrc,
       genre: item.attributes.genreNames,
       artwork: item.attributes.artwork?.url,
-    })) ?? [];
+    }));
   }
 }
