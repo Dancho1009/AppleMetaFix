@@ -1,44 +1,24 @@
 import { getMediaUserToken, loadConfig } from "../config/AppConfig";
+import { LanguageDetector } from "../services/LanguageDetector";
 import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
 
 export interface TrackMetadata {
-  // Apple Music 标识
   id?: string;
-
-  // 基础信息
   title?: string;
   artist?: string;
   album?: string;
-
-  // 时间信息
   releaseDate?: string;
   durationInMillis?: number;
-
-  // 分类信息
   genre?: string[];
-
-  // 封面
   artwork?: string;
-
-  // 唯一标识
   isrc?: string;
-
-  // 关联资源
   artistId?: string;
   albumId?: string;
-
-  // 创作者及版权
   composer?: string;
   copyright?: string;
-
-  // 音频及歌词信息
   audioLocale?: string;
   hasLyrics?: boolean;
-
-  // Apple Music链接
   url?: string;
-
-  // 保留Apple Music原始响应
   raw?: unknown;
 }
 
@@ -98,37 +78,43 @@ export class AppleMusicProvider {
   }
 
   async searchTrack(title: string, artist?: string, album?: string): Promise<TrackMetadata[]> {
+    const preference = LanguageDetector.detect({ title, artist, album });
+
     const terms = [
       [title, artist, album],
       [artist, title, album],
       [title],
     ].map((items) => items.filter(Boolean).join(" "));
 
-    for (const term of terms) {
-      const results = await this.search(term);
+    for (const storefront of preference.storefronts) {
+      for (const term of terms) {
+        const results = await this.search(term, storefront);
 
-      console.log("[APPLE] search", {
-        term,
-        count: results.length,
-        first: results[0],
-      });
+        console.log("[APPLE] search", {
+          storefront,
+          language: preference.primary,
+          term,
+          count: results.length,
+          first: results[0],
+        });
 
-      if (results.length > 0) {
-        return results;
+        if (results.length > 0) {
+          return results;
+        }
       }
     }
 
     return [];
   }
 
-  private async search(term: string): Promise<TrackMetadata[]> {
+  private async search(term: string, storefront = this.storefront): Promise<TrackMetadata[]> {
     const auth = await this.authProvider.getAuthorizationToken();
 
     if (!this.mediaUserToken) {
       throw new Error("缺少 Apple Music media-user-token");
     }
 
-    const url = new URL(`https://amp-api.music.apple.com/v1/catalog/${this.storefront}/search`);
+    const url = new URL(`https://amp-api.music.apple.com/v1/catalog/${storefront}/search`);
     url.searchParams.set("term", normalizeText(term) ?? "");
     url.searchParams.set("types", "songs");
     url.searchParams.set("limit", "10");
@@ -145,15 +131,13 @@ export class AppleMusicProvider {
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Apple Music search failed: ${response.status} ${text}`);
+      return [];
     }
 
     const data = (await response.json()) as AppleMusicSearchResponse;
     const songs = data.results?.songs?.data;
 
     if (!Array.isArray(songs)) {
-      console.log("[APPLE] invalid response", data);
       return [];
     }
 
