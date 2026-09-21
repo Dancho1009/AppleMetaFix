@@ -110,7 +110,14 @@ export default function App() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement) return;
+      if (settingsOpen) return;
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
       if (!selectedSongId) return;
 
       const index = filtered.findIndex((song) => song.path === selectedSongId);
@@ -126,7 +133,7 @@ export default function App() {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedSongId, filtered]);
+  }, [selectedSongId, filtered, settingsOpen]);
 
   useEffect(() => {
     if (selectedSongId) {
@@ -232,15 +239,17 @@ export default function App() {
             </table>
           </div>
         </section>
-
-        {selectedSong && (
-          <DetailPanel
-            song={selectedSong}
-            config={config}
-            onClose={() => setSelectedSong(null)}
-          />
-        )}
       </div>
+
+      {selectedSong && (
+        <DetailPanel
+          key={selectedSong.path}
+          open={!settingsOpen}
+          song={selectedSong}
+          config={config}
+          onClose={() => setSelectedSong(null)}
+        />
+      )}
 
       <SettingsPanel
         open={settingsOpen}
