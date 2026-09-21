@@ -1,4 +1,4 @@
-import { getMediaUserToken, loadConfig } from "../config/AppConfig";
+import { getConfig } from "../config/ConfigService";
 import { LanguageDetector } from "../services/LanguageDetector";
 import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
 
@@ -50,6 +50,13 @@ interface AppleMusicSearchResponse {
   };
 }
 
+interface AppleMusicProviderOptions {
+  storefront?: string;
+  developerToken?: string;
+  mediaUserToken?: string;
+  candidateLimit?: number;
+}
+
 function normalizeText(value?: string) {
   return value
     ?.normalize("NFKC")
@@ -58,27 +65,51 @@ function normalizeText(value?: string) {
     .trim();
 }
 
-export class AppleMusicProvider {
-  private storefront: string;
-  private authProvider: AppleMusicAuthProvider;
-  private mediaUserToken?: string;
+function normalizeLimit(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 10;
+  return Math.min(25, Math.max(1, Math.round(parsed)));
+}
 
-  constructor(options?: { storefront?: string; mediaUserToken?: string }) {
-    const config = loadConfig();
-    this.storefront =
-      options?.storefront ??
-      process.env.APPLE_MUSIC_STOREFRONT ??
-      config.appleMusic?.storefront ??
-      "us";
-    this.mediaUserToken =
-      options?.mediaUserToken ??
-      process.env.APPLE_MUSIC_MEDIA_USER_TOKEN ??
-      getMediaUserToken();
+export class AppleMusicProvider {
+  private authProvider: AppleMusicAuthProvider;
+  private options?: AppleMusicProviderOptions;
+
+  constructor(options?: AppleMusicProviderOptions) {
+    this.options = options;
     this.authProvider = new AppleMusicAuthProvider();
   }
 
-  async searchTrack(title: string, artist?: string, album?: string): Promise<TrackMetadata[]> {
+  private getRuntimeSettings() {
+    const config = getConfig();
+    const environmentLimit = process.env.APPLE_MUSIC_CANDIDATE_LIMIT;
+
+    return {
+      storefront: (
+        this.options?.storefront ??
+        process.env.APPLE_MUSIC_STOREFRONT ??
+        config.appleMusic.storefront ??
+        "auto"
+      ).toLowerCase(),
+      mediaUserToken:
+        this.options?.mediaUserToken ??
+        process.env.APPLE_MUSIC_MEDIA_USER_TOKEN ??
+        config.appleMusic.mediaUserToken,
+      candidateLimit: normalizeLimit(
+        this.options?.candidateLimit ??
+          environmentLimit ??
+          config.appleMusic.candidateLimit,
+      ),
+    };
+  }
+
+  async searchTrack(
+    title: string,
+    artist?: string,
+    album?: string,
+  ): Promise<TrackMetadata[]> {
     const preference = LanguageDetector.detect({ title, artist, album });
+    const settings = this.getRuntimeSettings();
 
     const terms = [
       [title, artist, album],
@@ -86,14 +117,25 @@ export class AppleMusicProvider {
       [title],
     ].map((items) => items.filter(Boolean).join(" "));
 
-    for (const storefront of preference.storefronts) {
+    const storefronts =
+      settings.storefront === "auto"
+        ? preference.storefronts
+        : [settings.storefront];
+
+    for (const storefront of storefronts) {
       for (const term of terms) {
-        const results = await this.search(term, storefront);
+        const results = await this.search(
+          term,
+          storefront,
+          settings.mediaUserToken,
+          settings.candidateLimit,
+        );
 
         console.log("[APPLE] search", {
           storefront,
           language: preference.primary,
           term,
+          limit: settings.candidateLimit,
           count: results.length,
           first: results[0],
         });
@@ -107,22 +149,31 @@ export class AppleMusicProvider {
     return [];
   }
 
-  private async search(term: string, storefront = this.storefront): Promise<TrackMetadata[]> {
+  private async search(
+    term: string,
+    storefront: string,
+    mediaUserToken: string | undefined,
+    candidateLimit: number,
+  ): Promise<TrackMetadata[]> {
     const auth = await this.authProvider.getAuthorizationToken();
 
-    if (!this.mediaUserToken) {
+    if (!mediaUserToken) {
       throw new Error("缺少 Apple Music media-user-token");
     }
 
-    const url = new URL(`https://amp-api.music.apple.com/v1/catalog/${storefront}/search`);
+    const url = new URL(
+      "https://amp-api.music.apple.com/v1/catalog/" +
+        storefront +
+        "/search",
+    );
     url.searchParams.set("term", normalizeText(term) ?? "");
     url.searchParams.set("types", "songs");
-    url.searchParams.set("limit", "10");
+    url.searchParams.set("limit", String(candidateLimit));
 
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${auth.token}`,
-        "Music-User-Token": this.mediaUserToken,
+        Authorization: "Bearer " + auth.token,
+        "Music-User-Token": mediaUserToken,
         "User-Agent": "Mozilla/5.0",
         Origin: "https://music.apple.com",
         Referer: "https://music.apple.com/",

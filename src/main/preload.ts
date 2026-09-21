@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("appleMetaFix", {
+  getConfig: () => ipcRenderer.invoke("config:get"),
+  updateConfig: (config: any) => ipcRenderer.invoke("config:update", config),
+  onConfigChanged: (callback: (config: any) => void) => {
+    ipcRenderer.on("config:changed", (_event, config) => callback(config));
+  },
   selectFolder: () => ipcRenderer.invoke("select-folder"),
   scanFolder: (folderPath: string) => ipcRenderer.invoke("scan-folder", folderPath),
   getSongDetail: (filePath: string) => ipcRenderer.invoke("get-song-detail", filePath),

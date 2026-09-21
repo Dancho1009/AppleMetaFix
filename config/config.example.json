@@ -1,6 +1,26 @@
 {
   "appleMusic": {
     "mediaUserToken": "",
-    "storefront": "auto"
+    "storefront": "auto",
+    "candidateLimit": 10
+  },
+  "display": {
+    "appleMusic": {
+      "artwork": true,
+      "title": true,
+      "artist": true,
+      "album": true,
+      "genre": true,
+      "releaseDate": true,
+      "durationInMillis": true,
+      "composer": true,
+      "score": true,
+      "confidence": true,
+      "url": false,
+      "isrc": false,
+      "copyright": false,
+      "audioLocale": false,
+      "hasLyrics": false
+    }
   }
 }

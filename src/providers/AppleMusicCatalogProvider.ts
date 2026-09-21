@@ -7,6 +7,7 @@ export class AppleMusicCatalogProvider {
     storefront?: string;
     developerToken?: string;
     mediaUserToken?: string;
+    candidateLimit?: number;
   }) {
     this.provider = new AppleMusicProvider(options);
   }

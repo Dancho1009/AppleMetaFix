@@ -1,4 +1,4 @@
-import { getMediaUserToken } from "../config/AppConfig";
+import { getMediaUserToken } from "../config/ConfigService";
 
 export type AppleMusicAuthType = "media-user-token" | "authorization-token";
 

@@ -1,9 +1,11 @@
-import { dialog, ipcMain, shell } from "electron";
+import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import path from "node:path";
 import { exec } from "node:child_process";
 import { FolderScanner } from "../scanner/FolderScanner";
 import { getSongByPath } from "../database/songRepository";
 import { MetadataMatchPipeline } from "../services/MetadataMatchPipeline";
+import { getConfig, updateConfig } from "../config/ConfigService";
+import { AppConfigPatch } from "../config/AppConfig";
 import { debugLog, debugError } from "./logger";
 
 const folderScanner = new FolderScanner();
@@ -11,7 +13,7 @@ const metadataMatchPipeline = new MetadataMatchPipeline();
 
 function openWindowsPath(targetPath: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const command = `start \"\" \"${targetPath}\"`;
+    const command = 'start "" "' + targetPath + '"';
     exec(command, (error) => {
       if (error) {
         debugError("FILE", "打开路径失败", error);
@@ -23,7 +25,32 @@ function openWindowsPath(targetPath: string): Promise<boolean> {
   });
 }
 
+function broadcastConfigChanged(config: ReturnType<typeof getConfig>) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send("config:changed", config);
+    }
+  }
+}
+
 export function registerIPCHandlers() {
+  ipcMain.handle("config:get", () => {
+    return getConfig();
+  });
+
+  ipcMain.handle("config:update", (_event, patch: AppConfigPatch) => {
+    const config = updateConfig(patch ?? {});
+
+    debugLog("CONFIG", "配置已更新", {
+      storefront: config.appleMusic.storefront,
+      candidateLimit: config.appleMusic.candidateLimit,
+      hasMediaUserToken: Boolean(config.appleMusic.mediaUserToken),
+    });
+
+    broadcastConfigChanged(config);
+    return config;
+  });
+
   ipcMain.handle("select-folder", async () => {
     debugLog("IPC", "select-folder 开始");
     const result = await dialog.showOpenDialog({

@@ -1,33 +1,102 @@
-import fs from "node:fs";
-import path from "node:path";
+export const APPLE_MUSIC_DISPLAY_FIELD_KEYS = [
+  "artwork",
+  "title",
+  "artist",
+  "album",
+  "genre",
+  "releaseDate",
+  "durationInMillis",
+  "composer",
+  "score",
+  "confidence",
+  "url",
+  "isrc",
+  "copyright",
+  "audioLocale",
+  "hasLyrics",
+] as const;
+
+export type AppleMusicDisplayFieldKey =
+  (typeof APPLE_MUSIC_DISPLAY_FIELD_KEYS)[number];
 
 export interface AppConfig {
-  appleMusic?: {
-    mediaUserToken?: string;
-    storefront?: string;
+  appleMusic: {
+    mediaUserToken: string;
+    storefront: string;
+    candidateLimit: number;
+  };
+  display: {
+    appleMusic: Record<AppleMusicDisplayFieldKey, boolean>;
   };
 }
 
-let cachedConfig: AppConfig | null = null;
+export type AppConfigPatch = {
+  appleMusic?: Partial<AppConfig["appleMusic"]>;
+  display?: {
+    appleMusic?: Partial<AppConfig["display"]["appleMusic"]>;
+  };
+};
 
-export function loadConfig(): AppConfig {
-  if (cachedConfig) {
-    return cachedConfig;
+export const DEFAULT_APP_CONFIG: AppConfig = {
+  appleMusic: {
+    mediaUserToken: "",
+    storefront: "auto",
+    candidateLimit: 10,
+  },
+  display: {
+    appleMusic: {
+      artwork: true,
+      title: true,
+      artist: true,
+      album: true,
+      genre: true,
+      releaseDate: true,
+      durationInMillis: true,
+      composer: true,
+      score: true,
+      confidence: true,
+      url: false,
+      isrc: false,
+      copyright: false,
+      audioLocale: false,
+      hasLyrics: false,
+    },
+  },
+};
+
+function normalizeCandidateLimit(value: unknown): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_APP_CONFIG.appleMusic.candidateLimit;
   }
 
-  try {
-    const configPath = path.resolve(process.cwd(), "config", "config.json");
-    const content = fs.readFileSync(configPath, "utf-8");
-    cachedConfig = JSON.parse(content) as AppConfig;
-    console.log("[CONFIG] loaded", configPath);
-  } catch (error) {
-    console.warn("[CONFIG] config.json not found, using default", error);
-    cachedConfig = {};
-  }
-
-  return cachedConfig;
+  return Math.min(25, Math.max(1, Math.round(parsed)));
 }
 
-export function getMediaUserToken(): string | undefined {
-  return loadConfig().appleMusic?.mediaUserToken;
+export function normalizeAppConfig(input?: AppConfigPatch | null): AppConfig {
+  const storefront =
+    String(input?.appleMusic?.storefront ?? DEFAULT_APP_CONFIG.appleMusic.storefront)
+      .trim()
+      .toLowerCase() || DEFAULT_APP_CONFIG.appleMusic.storefront;
+
+  return {
+    appleMusic: {
+      mediaUserToken: String(
+        input?.appleMusic?.mediaUserToken ??
+          DEFAULT_APP_CONFIG.appleMusic.mediaUserToken,
+      ).trim(),
+      storefront,
+      candidateLimit: normalizeCandidateLimit(
+        input?.appleMusic?.candidateLimit ??
+          DEFAULT_APP_CONFIG.appleMusic.candidateLimit,
+      ),
+    },
+    display: {
+      appleMusic: {
+        ...DEFAULT_APP_CONFIG.display.appleMusic,
+        ...(input?.display?.appleMusic ?? {}),
+      },
+    },
+  };
 }
