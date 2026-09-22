@@ -12,8 +12,8 @@ export class CachePolicyService {
       return;
     }
 
-    // 当前缓存仓储未保存访问时间字段，暂时执行整体清理。
+    // 当前缓存仓储未保存访问时间字段，暂时保留接口。
     // 后续增加缓存时间戳字段后替换为按TTL删除。
-    this.cacheService.clearExpired(config.retentionDays);
+    this.cacheService.clear();
   }
 }
