@@ -52,6 +52,21 @@ export function registerIPCHandlers() {
     return cacheManagementService.clearCache();
   });
 
+  ipcMain.handle("cache:cleanup-expired", () => {
+    debugLog("CACHE", "清理过期缓存");
+    return cacheManagementService.cleanupExpired();
+  });
+
+  ipcMain.handle("cache:set-retention-days", (_event, days: number) => {
+    const config = updateConfig({
+      cache: {
+        retentionDays: days,
+      },
+    });
+    broadcastConfigChanged(config);
+    return config;
+  });
+
   ipcMain.handle("select-folder", async () => {
     const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
     if (result.canceled || result.filePaths.length === 0) return null;
