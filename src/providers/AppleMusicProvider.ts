@@ -4,6 +4,7 @@ import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
 
 export interface TrackMetadata {
   id?: string;
+  storefront?: string;
   title?: string;
   artist?: string;
   album?: string;
@@ -194,6 +195,7 @@ export class AppleMusicProvider {
 
     return songs.map((item) => ({
       id: item.id,
+      storefront,
       title: item.attributes.name,
       artist: item.attributes.artistName,
       album: item.attributes.albumName,
