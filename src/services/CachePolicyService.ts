@@ -1,19 +1,15 @@
-import { AppleMusicCacheService } from "./AppleMusicCacheService";
+import { cleanupAppleMusicCache } from "../database/appleMusicCacheCleanupRepository";
 
 export interface CachePolicyConfig {
   retentionDays: number;
 }
 
 export class CachePolicyService {
-  private readonly cacheService = new AppleMusicCacheService();
-
   cleanup(config: CachePolicyConfig): void {
     if (config.retentionDays <= 0) {
       return;
     }
 
-    // 当前缓存仓储未保存访问时间字段，暂时保留接口。
-    // 后续增加缓存时间戳字段后替换为按TTL删除。
-    this.cacheService.clear();
+    cleanupAppleMusicCache(config.retentionDays);
   }
 }
