@@ -1,5 +1,10 @@
+import { getConfig } from "../config/ConfigService";
 import { AppleMusicCatalogProvider } from "../providers/AppleMusicCatalogProvider";
-import { AppleMusicCacheService } from "./AppleMusicCacheService";
+import {
+  AppleMusicCacheQuery,
+  AppleMusicCacheService,
+} from "./AppleMusicCacheService";
+import { LanguageDetector } from "./LanguageDetector";
 import { LocalMetadataReader } from "./LocalMetadataReader";
 import {
   MatchResult,
@@ -14,17 +19,20 @@ export class MetadataMatchPipeline {
 
   async process(filePath: string) {
     const localTrack = await this.reader.read(filePath);
+    const cacheQuery = this.createCacheQuery(localTrack);
 
     console.log("[MATCH] local track", localTrack);
 
-    let candidates = this.cache.findCandidates(localTrack);
+    let candidates = this.cache.findCandidates(cacheQuery);
     let match = this.matcher.match(localTrack, candidates);
 
     if (this.isAcceptableCacheMatch(match)) {
       console.log("[MATCH CACHE] hit", {
+        storefronts: cacheQuery.storefronts,
         count: candidates.length,
         score: match?.score,
         confidence: match?.confidence,
+        matchedStorefront: match?.track?.storefront,
       });
 
       return {
@@ -36,6 +44,7 @@ export class MetadataMatchPipeline {
     }
 
     console.log("[MATCH CACHE] miss", {
+      storefronts: cacheQuery.storefronts,
       count: candidates.length,
       score: match?.score,
       confidence: match?.confidence,
@@ -53,18 +62,20 @@ export class MetadataMatchPipeline {
 
     console.log("[MATCH APPLE] candidates", {
       count: safeRemoteCandidates.length,
+      storefront: safeRemoteCandidates[0]?.storefront,
       candidates: safeRemoteCandidates.slice(0, 3),
     });
 
     if (safeRemoteCandidates.length > 0) {
-      this.cache.saveSearchResults(localTrack, safeRemoteCandidates);
+      this.cache.saveSearchResults(cacheQuery, safeRemoteCandidates);
 
       console.log("[MATCH CACHE] saved", {
+        storefront: safeRemoteCandidates[0]?.storefront,
         count: safeRemoteCandidates.length,
       });
     }
 
-    candidates = this.cache.findCandidates(localTrack);
+    candidates = this.cache.findCandidates(cacheQuery);
 
     if (candidates.length === 0) {
       candidates = safeRemoteCandidates;
@@ -77,6 +88,29 @@ export class MetadataMatchPipeline {
       match,
       candidates,
       source: "apple-music" as const,
+    };
+  }
+
+  private createCacheQuery(localTrack: {
+    title?: string;
+    artist?: string;
+    album?: string;
+    path?: string;
+  }): AppleMusicCacheQuery {
+    const configuredStorefront = getConfig().appleMusic.storefront
+      .trim()
+      .toLowerCase();
+
+    const storefronts =
+      configuredStorefront === "auto"
+        ? LanguageDetector.detect(localTrack).storefronts
+        : [configuredStorefront];
+
+    return {
+      title: localTrack.title,
+      artist: localTrack.artist,
+      album: localTrack.album,
+      storefronts,
     };
   }
 
