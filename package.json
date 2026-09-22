@@ -19,6 +19,10 @@
   "keywords": ["music", "metadata", "apple-music", "electron"],
   "license": "MIT",
   "devDependencies": {
+    "@types/better-sqlite3": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
     "@vitejs/plugin-react": "^5.0.4",
     "electron": "^39.0.0",
     "electron-builder": "latest",
