@@ -5,12 +5,15 @@ import {
   getMatchResultFields,
   getMatchResultValue,
 } from "../services/DisplayConfigService";
+import SidePanel from "./SidePanel";
 
 export default function DetailPanel({
+  open,
   song,
   config,
   onClose,
 }: {
+  open: boolean;
   song: any;
   config: AppConfig;
   onClose: () => void;
@@ -58,18 +61,35 @@ export default function DetailPanel({
     (song.duration ? song.duration * 1000 : undefined);
 
   return (
-    <aside className="card detail-panel">
-      <button onClick={onClose}>关闭</button>
+    <SidePanel
+      open={open}
+      title={song.title || "未知标题"}
+      subtitle={song.artist || "未知艺术家"}
+      onClose={onClose}
+      width="wide"
+      footer={
+        <div className="detail-actions">
+          {song.lyricsPath && (
+            <button onClick={() => api.openLyricsFile(song.lyricsPath)}>
+              打开歌词文件
+            </button>
+          )}
+          <button onClick={() => api.openFileLocation(song.path)}>
+            打开所在文件夹
+          </button>
+        </div>
+      }
+    >
+      <div className="detail-hero">
+        {cover ? (
+          <img className="detail-cover" src={cover} alt="cover" />
+        ) : (
+          <div className="cover-empty">暂无封面</div>
+        )}
+      </div>
 
-      {cover ? (
-        <img className="detail-cover" src={cover} alt="cover" />
-      ) : (
-        <div className="cover-empty">暂无封面</div>
-      )}
-
-      <h3>{song.title || "未知标题"}</h3>
-
-      <section className="metadata-block">
+      <section className="detail-section metadata-block">
+        <h3>本地 Metadata</h3>
         <p>艺术家：{song.artist || "-"}</p>
         <p>专辑：{song.album || "-"}</p>
         <p>专辑艺术家：{song.albumArtist || "-"}</p>
@@ -79,15 +99,16 @@ export default function DetailPanel({
         <p>时长：{localDurationMs ? formatDuration(localDurationMs) : "-"}</p>
       </section>
 
-      <section className="match-section">
-        <button onClick={matchSong} disabled={matching}>
-          {matching ? "匹配中..." : "匹配 Apple Music"}
-        </button>
+      <section className="detail-section match-section">
+        <div className="detail-section-heading">
+          <h3>Apple Music</h3>
+          <button onClick={matchSong} disabled={matching}>
+            {matching ? "匹配中..." : "匹配 Apple Music"}
+          </button>
+        </div>
 
         {appleMatch && (
-          <div>
-            <h4>Apple Music结果</h4>
-
+          <div className="apple-match-result">
             {matchFields.map((field) => {
               let value = getMatchResultValue(appleMatch, field.key);
 
@@ -97,10 +118,10 @@ export default function DetailPanel({
 
               if (field.key === "artwork" && value !== "-") {
                 return (
-                  <div key={field.key}>
+                  <div className="apple-artwork-field" key={field.key}>
                     <p>{field.label}</p>
                     <img
-                      className="detail-cover"
+                      className="detail-cover apple-detail-cover"
                       src={String(value).replace("{w}x{h}", "300x300")}
                       alt="apple artwork"
                     />
@@ -136,7 +157,8 @@ export default function DetailPanel({
         )}
       </section>
 
-      <section className="audio-info-block">
+      <section className="detail-section audio-info-block">
+        <h3>音频信息</h3>
         <p>格式：{song.format || "-"}</p>
         <p>码率：{song.bitrate ? String(song.bitrate) + " kbps" : "-"}</p>
         <p>
@@ -149,8 +171,8 @@ export default function DetailPanel({
         </p>
       </section>
 
-      <section className="lyrics-section">
-        <h4>歌词</h4>
+      <section className="detail-section lyrics-section">
+        <h3>歌词</h3>
         <div className="lyrics-actions">
           <button
             className={lyricsMode === "embedded" ? "active" : ""}
@@ -167,17 +189,6 @@ export default function DetailPanel({
         </div>
         <pre className="lyrics-viewer">{lyrics || "暂无歌词"}</pre>
       </section>
-
-      <div className="detail-actions">
-        {song.lyricsPath && (
-          <button onClick={() => api.openLyricsFile(song.lyricsPath)}>
-            打开歌词文件
-          </button>
-        )}
-        <button onClick={() => api.openFileLocation(song.path)}>
-          打开所在文件夹
-        </button>
-      </div>
-    </aside>
+    </SidePanel>
   );
 }

@@ -13,7 +13,7 @@ export class MetadataSearchService {
 
   async search(local: LocalTrackInfo): Promise<MetadataSearchResult> {
     const candidates = await this.catalog.search(
-      local.title,
+      local.title ?? "",
       local.artist,
       local.album,
     );

@@ -17,6 +17,11 @@ export interface LibraryStats {
   };
 }
 
+interface MusicDashboardProps {
+  stats?: LibraryStats;
+  onFilter?: (filter: string) => void;
+}
+
 function formatSize(size?: number) {
   if (!size) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -29,7 +34,9 @@ function formatSize(size?: number) {
   return `${value.toFixed(2)} ${units[index]}`;
 }
 
-export default function MusicDashboard({ stats }: { stats?: LibraryStats }) {
+export default function MusicDashboard({
+  stats,
+}: MusicDashboardProps) {
   if (!stats) return null;
 
   const embedded = stats.lyrics?.embedded || 0;
