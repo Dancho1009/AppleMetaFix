@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { AppConfig } from "../../config/AppConfig";
 
 interface CacheStats {
   searchCount?: number;
@@ -6,12 +7,23 @@ interface CacheStats {
   [key: string]: unknown;
 }
 
-export default function CacheManagementSection() {
+interface Props {
+  config: AppConfig;
+  onSaved: (config: AppConfig) => void;
+}
+
+export default function CacheManagementSection({ config, onSaved }: Props) {
   const api: any = (window as any).appleMetaFix;
   const [stats, setStats] = useState<CacheStats>({});
-  const [retentionDays, setRetentionDays] = useState(30);
+  const [retentionDays, setRetentionDays] = useState(
+    config.cache.retentionDays,
+  );
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setRetentionDays(config.cache.retentionDays);
+  }, [config.cache.retentionDays]);
 
   const refresh = async () => {
     try {
@@ -25,6 +37,17 @@ export default function CacheManagementSection() {
   useEffect(() => {
     refresh();
   }, []);
+
+  const saveRetentionDays = async () => {
+    try {
+      const nextConfig = await api.setCacheRetentionDays(retentionDays);
+      onSaved(nextConfig);
+      setMessage("缓存保留时间已更新");
+    } catch (error) {
+      console.error("[CACHE:UI] 更新保留时间失败", error);
+      setMessage("更新失败");
+    }
+  };
 
   const cleanupExpired = async () => {
     setLoading(true);
@@ -42,6 +65,10 @@ export default function CacheManagementSection() {
   };
 
   const clearAll = async () => {
+    if (!window.confirm("确定删除全部 Apple Music 缓存吗？此操作无法恢复。")) {
+      return;
+    }
+
     setLoading(true);
     setMessage("");
     try {
@@ -53,16 +80,6 @@ export default function CacheManagementSection() {
       setMessage("清空失败");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const saveRetentionDays = async () => {
-    try {
-      await api.setCacheRetentionDays(retentionDays);
-      setMessage("缓存保留时间已更新");
-    } catch (error) {
-      console.error("[CACHE:UI] 更新保留时间失败", error);
-      setMessage("更新失败");
     }
   };
 
