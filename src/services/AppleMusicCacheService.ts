@@ -5,7 +5,10 @@ import {
   getAppleMusicSearchResults,
   saveAppleMusicSearchResults,
 } from "../database/appleMusicSearchRepository";
-import { getAppleMusicTrackCount } from "../database/appleMusicTrackRepository";
+import {
+  findAppleMusicTracksByMetadata,
+  getAppleMusicTrackCount,
+} from "../database/appleMusicTrackRepository";
 import { TrackMetadata } from "../providers/AppleMusicProvider";
 import {
   normalizeAlbum,
@@ -42,6 +45,16 @@ export function createAppleMusicSearchKey(
   return createHash("sha256").update(source, "utf8").digest("hex");
 }
 
+function trackCacheKey(track: TrackMetadata): string {
+  return [
+    track.storefront ?? "unknown",
+    track.id ?? "",
+    normalizeTitle(track.title),
+    normalizeArtist(track.artist),
+    normalizeAlbum(track.album),
+  ].join("|");
+}
+
 export class AppleMusicCacheService {
   findCandidates(query: AppleMusicCacheQuery): TrackMetadata[] {
     const searchKey = createAppleMusicSearchKey(query);
@@ -50,7 +63,23 @@ export class AppleMusicCacheService {
       return [];
     }
 
-    return getAppleMusicSearchResults(searchKey);
+    const searchCandidates = getAppleMusicSearchResults(searchKey);
+    const catalogCandidates = findAppleMusicTracksByMetadata(query);
+    const seen = new Set<string>();
+    const candidates: TrackMetadata[] = [];
+
+    for (const candidate of [...searchCandidates, ...catalogCandidates]) {
+      const key = trackCacheKey(candidate);
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      candidates.push(candidate);
+    }
+
+    return candidates;
   }
 
   saveSearchResults(
