@@ -32,6 +32,7 @@ export interface AppleMusicTrackLookup {
   title?: string;
   artist?: string;
   album?: string;
+  storefront?: string;
 }
 
 function parseJson<T>(value: string | null): T | undefined {
@@ -166,6 +167,7 @@ export function findAppleMusicTracksByMetadata(
 
   const artist = normalizeArtist(query.artist);
   const album = normalizeAlbum(query.album);
+  const storefront = query.storefront?.trim().toLowerCase() || "";
   const safeLimit = Math.min(100, Math.max(1, Math.round(limit)));
 
   const rows = getDatabase()
@@ -173,9 +175,12 @@ export function findAppleMusicTracksByMetadata(
       SELECT *
       FROM apple_music_tracks
       WHERE
-        normalized_title = @title
-        OR normalized_title LIKE @contains_title
-        OR @title LIKE '%' || normalized_title || '%'
+        (@storefront = '' OR storefront = @storefront)
+        AND (
+          normalized_title = @title
+          OR normalized_title LIKE @contains_title
+          OR @title LIKE '%' || normalized_title || '%'
+        )
       ORDER BY
         CASE WHEN normalized_title = @title THEN 0 ELSE 1 END,
         CASE
@@ -194,6 +199,7 @@ export function findAppleMusicTracksByMetadata(
       contains_title: `%${title}%`,
       artist,
       album,
+      storefront,
       limit: safeLimit,
     }) as AppleMusicTrackRow[];
 
