@@ -9,21 +9,14 @@ interface CacheStats {
 
 interface Props {
   config: AppConfig;
-  onSaved: (config: AppConfig) => void;
+  onChange: (patch: Partial<AppConfig["cache"]>) => void;
 }
 
-export default function CacheManagementSection({ config, onSaved }: Props) {
+export default function CacheManagementSection({ config, onChange }: Props) {
   const api: any = (window as any).appleMetaFix;
   const [stats, setStats] = useState<CacheStats>({});
-  const [retentionDays, setRetentionDays] = useState(
-    config.cache.retentionDays,
-  );
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setRetentionDays(config.cache.retentionDays);
-  }, [config.cache.retentionDays]);
 
   const refresh = async () => {
     try {
@@ -37,17 +30,6 @@ export default function CacheManagementSection({ config, onSaved }: Props) {
   useEffect(() => {
     refresh();
   }, []);
-
-  const saveRetentionDays = async () => {
-    try {
-      const nextConfig = await api.setCacheRetentionDays(retentionDays);
-      onSaved(nextConfig);
-      setMessage("缓存保留时间已更新");
-    } catch (error) {
-      console.error("[CACHE:UI] 更新保留时间失败", error);
-      setMessage("更新失败");
-    }
-  };
 
   const cleanupExpired = async () => {
     setLoading(true);
@@ -99,18 +81,18 @@ export default function CacheManagementSection({ config, onSaved }: Props) {
 
       <label className="settings-field">
         <span>缓存保留时间（天）</span>
-        <div className="token-input-row">
-          <input
-            type="number"
-            min={1}
-            max={3650}
-            value={retentionDays}
-            onChange={(event) => setRetentionDays(Number(event.target.value))}
-          />
-          <button className="secondary-button" onClick={saveRetentionDays}>
-            保存
-          </button>
-        </div>
+        <input
+          type="number"
+          min={1}
+          max={3650}
+          value={config.cache.retentionDays}
+          onChange={(event) =>
+            onChange({
+              retentionDays: Math.max(1, Number(event.target.value) || 1),
+            })
+          }
+        />
+        <small>保存设置后生效。</small>
       </label>
 
       <div className="settings-footer">
