@@ -28,6 +28,12 @@ interface AppleMusicTrackRow {
   raw_json: string | null;
 }
 
+export interface AppleMusicTrackLookup {
+  title?: string;
+  artist?: string;
+  album?: string;
+}
+
 function parseJson<T>(value: string | null): T | undefined {
   if (!value) return undefined;
 
@@ -146,6 +152,52 @@ export function upsertAppleMusicTrack(track: TrackMetadata): number {
   }
 
   return row.id;
+}
+
+export function findAppleMusicTracksByMetadata(
+  query: AppleMusicTrackLookup,
+  limit = 50,
+): TrackMetadata[] {
+  const title = normalizeTitle(query.title);
+
+  if (!title) {
+    return [];
+  }
+
+  const artist = normalizeArtist(query.artist);
+  const album = normalizeAlbum(query.album);
+  const safeLimit = Math.min(100, Math.max(1, Math.round(limit)));
+
+  const rows = getDatabase()
+    .prepare(`
+      SELECT *
+      FROM apple_music_tracks
+      WHERE
+        normalized_title = @title
+        OR normalized_title LIKE @contains_title
+        OR @title LIKE '%' || normalized_title || '%'
+      ORDER BY
+        CASE WHEN normalized_title = @title THEN 0 ELSE 1 END,
+        CASE
+          WHEN @artist <> '' AND normalized_artist = @artist THEN 0
+          ELSE 1
+        END,
+        CASE
+          WHEN @album <> '' AND normalized_album = @album THEN 0
+          ELSE 1
+        END,
+        last_seen_at DESC
+      LIMIT @limit
+    `)
+    .all({
+      title,
+      contains_title: `%${title}%`,
+      artist,
+      album,
+      limit: safeLimit,
+    }) as AppleMusicTrackRow[];
+
+  return rows.map(mapAppleMusicTrackRow);
 }
 
 export function getAppleMusicTrackCount(): number {
