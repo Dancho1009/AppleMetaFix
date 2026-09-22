@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("appleMetaFix", {
   updateConfig: (config: any) => ipcRenderer.invoke("config:update", config),
   getCacheStats: () => ipcRenderer.invoke("cache:get-stats"),
   clearCache: () => ipcRenderer.invoke("cache:clear"),
+  cleanupExpiredCache: () => ipcRenderer.invoke("cache:cleanup-expired"),
+  setCacheRetentionDays: (days: number) => ipcRenderer.invoke("cache:set-retention-days", days),
   onConfigChanged: (callback: (config: any) => void) => {
     ipcRenderer.on("config:changed", (_event, config) => callback(config));
   },
