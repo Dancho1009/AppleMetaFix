@@ -1,9 +1,10 @@
 import { TrackMetadata } from "../providers/AppleMusicProvider";
 
 export interface LocalTrackInfo {
- title:string;
+ title?:string;
  artist?:string;
  album?:string;
+ year?:number;
  durationMs?:number;
  audioLocale?:string;
 }
@@ -33,7 +34,7 @@ export class MetadataMatchService {
 
  private scoreDetails(local:LocalTrackInfo,track:TrackMetadata):MatchScoreDetails{
   return {
-   title:{score:this.textScore(local.title,track.title,85),weight:50,reason:"标题匹配度"},
+   title:{score:this.textScore(local.title??"",track.title,85),weight:50,reason:"标题匹配度"},
    artist:{score:this.artistScore(local.artist,track.artist),weight:30,reason:"艺术家匹配度"},
    album:{score:this.textScore(local.album??"",track.album,90),weight:15,reason:"专辑匹配度"},
    duration:{score:this.durationScore(local.durationMs,track.durationInMillis),weight:5,reason:"时长匹配度"}
