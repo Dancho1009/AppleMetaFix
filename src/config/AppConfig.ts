@@ -25,6 +25,9 @@ export interface AppConfig {
     storefront: string;
     candidateLimit: number;
   };
+  cache: {
+    retentionDays: number;
+  };
   display: {
     appleMusic: Record<AppleMusicDisplayFieldKey, boolean>;
   };
@@ -32,6 +35,7 @@ export interface AppConfig {
 
 export type AppConfigPatch = {
   appleMusic?: Partial<AppConfig["appleMusic"]>;
+  cache?: Partial<AppConfig["cache"]>;
   display?: {
     appleMusic?: Partial<AppConfig["display"]["appleMusic"]>;
   };
@@ -42,6 +46,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     mediaUserToken: "",
     storefront: "auto",
     candidateLimit: 10,
+  },
+  cache: {
+    retentionDays: 30,
   },
   display: {
     appleMusic: {
@@ -74,6 +81,16 @@ function normalizeCandidateLimit(value: unknown): number {
   return Math.min(25, Math.max(1, Math.round(parsed)));
 }
 
+function normalizeRetentionDays(value: unknown): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_APP_CONFIG.cache.retentionDays;
+  }
+
+  return Math.min(3650, Math.max(1, Math.round(parsed)));
+}
+
 export function normalizeAppConfig(input?: AppConfigPatch | null): AppConfig {
   const storefront =
     String(input?.appleMusic?.storefront ?? DEFAULT_APP_CONFIG.appleMusic.storefront)
@@ -90,6 +107,11 @@ export function normalizeAppConfig(input?: AppConfigPatch | null): AppConfig {
       candidateLimit: normalizeCandidateLimit(
         input?.appleMusic?.candidateLimit ??
           DEFAULT_APP_CONFIG.appleMusic.candidateLimit,
+      ),
+    },
+    cache: {
+      retentionDays: normalizeRetentionDays(
+        input?.cache?.retentionDays ?? DEFAULT_APP_CONFIG.cache.retentionDays,
       ),
     },
     display: {
