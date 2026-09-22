@@ -11,7 +11,7 @@ async function main() {
       artist: "Eagles",
       album: "Hotel California",
       year: 1976,
-      duration: 391,
+      durationMs: 391000,
     },
     [
       {
