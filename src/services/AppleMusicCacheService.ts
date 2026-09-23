@@ -21,6 +21,7 @@ export interface AppleMusicCacheQuery {
   artist?: string;
   album?: string;
   storefronts?: string[];
+  language?: string;
 }
 
 export interface AppleMusicCacheStats {
@@ -29,6 +30,10 @@ export interface AppleMusicCacheStats {
 }
 
 function normalizeStorefront(value?: string): string {
+  return value?.trim().toLowerCase() || "unknown";
+}
+
+function normalizeLanguage(value?: string): string {
   return value?.trim().toLowerCase() || "unknown";
 }
 
@@ -61,8 +66,9 @@ export function createAppleMusicSearchKey(
   }
 
   const source = [
-    "v2",
+    "v3",
     normalizeStorefront(storefront),
+    normalizeLanguage(query.language),
     title,
     normalizeArtist(query.artist),
     normalizeAlbum(query.album),
