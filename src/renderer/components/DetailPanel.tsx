@@ -80,14 +80,15 @@ export default function DetailPanel({
 
   const candidates = matchResult?.candidates ?? [];
   const recommended = matchResult?.match ?? null;
-  const selectedCandidate =
-    candidates.find(
-      (candidate, index) =>
-        getCandidateKey(candidate, index) === selectedCandidateKey,
-    ) ??
-    recommended ??
-    null;
-  const appleMatch = selectedCandidate;
+  const selectedCandidateIndex = candidates.findIndex(
+    (candidate, index) =>
+      getCandidateKey(candidate, index) === selectedCandidateKey,
+  );
+  const hasSelectedCandidate = selectedCandidateIndex >= 0;
+  const selectedCandidate = hasSelectedCandidate
+    ? candidates[selectedCandidateIndex]
+    : recommended;
+  const appleMatch = selectedCandidate ?? null;
   const matchFields = getMatchResultFields(config);
   const scoreDetails =
     appleMatch?.scoreDetails ||
@@ -158,7 +159,7 @@ export default function DetailPanel({
             <div className="match-summary">
               <div>
                 <strong>
-                  {selectedCandidateKey ? "当前选择" : "系统推荐"}
+                  {hasSelectedCandidate ? "当前选择" : "系统推荐"}
                 </strong>
                 <span className="match-score">{appleMatch.score} 分</span>
                 <span className={`confidence-badge confidence-${appleMatch.confidence}`}>
@@ -166,7 +167,7 @@ export default function DetailPanel({
                 </span>
               </div>
               <span
-                className={`identity-badge identity-${appleMatch.identity.level}`}
+                className={`identity-badge identity-badge-${appleMatch.identity.level}`}
               >
                 {getIdentityLabel(appleMatch)}
               </span>
@@ -246,7 +247,7 @@ export default function DetailPanel({
               const isRecommended =
                 recommended?.track.id === candidate.track.id &&
                 recommended?.track.storefront === candidate.track.storefront;
-              const isSelected = selectedCandidateKey
+              const isSelected = hasSelectedCandidate
                 ? selectedCandidateKey === key
                 : isRecommended;
               const artwork = candidate.track.artwork?.replace(
