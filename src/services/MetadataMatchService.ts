@@ -52,23 +52,28 @@ export class MetadataMatchService {
  private identityAnalyzer = new TrackIdentityAnalyzer();
  private identityPolicy = new MatchIdentityPolicy();
 
+ rank(local: LocalTrackInfo, candidates?: TrackMetadata[] | null): MatchResult[] {
+  if (!candidates?.length) return [];
+
+  return candidates
+   .map((track) => {
+    const scoreDetails = this.scoreDetails(local, track);
+    const identity = this.identityScore(local, track);
+    const score = this.calculateScore(scoreDetails, identity.penalty);
+
+    return {
+     track,
+     score,
+     scoreDetails,
+     identity,
+     confidence: this.getConfidence(score, scoreDetails, identity),
+    };
+   })
+   .sort((a, b) => b.score - a.score);
+ }
+
  match(local: LocalTrackInfo, candidates?: TrackMetadata[] | null): MatchResult | null {
-  if (!candidates?.length) return null;
-
-  const results = candidates.map((track) => {
-   const scoreDetails = this.scoreDetails(local, track);
-   const identity = this.identityScore(local, track);
-   const score = this.calculateScore(scoreDetails, identity.penalty);
-
-   return { track, score, scoreDetails, identity };
-  }).sort((a, b) => b.score - a.score);
-
-  const result = results[0];
-
-  return {
-   ...result,
-   confidence: this.getConfidence(result.score, result.scoreDetails, result.identity),
-  };
+  return this.rank(local, candidates)[0] ?? null;
  }
 
  private identityScore(local: LocalTrackInfo, track: TrackMetadata): MatchIdentityInfo {
