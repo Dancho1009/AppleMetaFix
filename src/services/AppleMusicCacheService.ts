@@ -9,6 +9,7 @@ import {
   findAppleMusicTracksByMetadata,
   getAppleMusicTrackCount,
 } from "../database/appleMusicTrackRepository";
+import { getAppleMusicCacheSizeBytes } from "../database/appleMusicCacheStatsRepository";
 import { TrackMetadata } from "../providers/AppleMusicProvider";
 import {
   normalizeAlbum,
@@ -21,14 +22,20 @@ export interface AppleMusicCacheQuery {
   artist?: string;
   album?: string;
   storefronts?: string[];
+  language?: string;
 }
 
 export interface AppleMusicCacheStats {
   trackCount: number;
   searchCount: number;
+  sizeBytes: number;
 }
 
 function normalizeStorefront(value?: string): string {
+  return value?.trim().toLowerCase() || "unknown";
+}
+
+function normalizeLanguage(value?: string): string {
   return value?.trim().toLowerCase() || "unknown";
 }
 
@@ -61,8 +68,9 @@ export function createAppleMusicSearchKey(
   }
 
   const source = [
-    "v2",
+    "v3",
     normalizeStorefront(storefront),
+    normalizeLanguage(query.language),
     title,
     normalizeArtist(query.artist),
     normalizeAlbum(query.album),
@@ -167,6 +175,7 @@ export class AppleMusicCacheService {
     return {
       trackCount: getAppleMusicTrackCount(),
       searchCount: getAppleMusicSearchCount(),
+      sizeBytes: getAppleMusicCacheSizeBytes(),
     };
   }
 

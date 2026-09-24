@@ -3,6 +3,7 @@ import path from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 import { readFile, writeFile, rm } from 'node:fs/promises';
 import { registerIPCHandlers } from './ipc';
+import { CacheBootstrapService } from '../services/CacheBootstrapService';
 
 const cleanupTasks: Array<() => void | Promise<void>> = [];
 
@@ -137,9 +138,12 @@ async function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   setupElectronCache();
   registerAppCleanup();
+
+  await new CacheBootstrapService().initialize();
+
   registerIPCHandlers();
   createWindow();
 });

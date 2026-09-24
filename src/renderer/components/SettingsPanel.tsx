@@ -7,6 +7,7 @@ import {
 } from "../../config/AppConfig";
 import { MATCH_RESULT_FIELDS } from "../services/DisplayConfigService";
 import SidePanel from "./SidePanel";
+import CacheManagementSection from "./CacheManagementSection";
 
 interface SettingsPanelProps {
   open: boolean;
@@ -69,6 +70,16 @@ export default function SettingsPanel({
     }));
   };
 
+  const updateCache = (patch: Partial<AppConfig["cache"]>) => {
+    setDraft((current) => ({
+      ...current,
+      cache: {
+        ...current.cache,
+        ...patch,
+      },
+    }));
+  };
+
   const updateDisplayField = (
     key: AppleMusicDisplayFieldKey,
     enabled: boolean,
@@ -120,7 +131,6 @@ export default function SettingsPanel({
             </button>
             {error && <span className="settings-error">{error}</span>}
           </div>
-
           <div>
             <button
               className="secondary-button"
@@ -174,9 +184,6 @@ export default function SettingsPanel({
               </option>
             ))}
           </select>
-          <small>
-            选择“自动检测”时继续根据歌曲语言自动选择 Apple Music 区域。
-          </small>
         </label>
 
         <label className="settings-field">
@@ -186,19 +193,23 @@ export default function SettingsPanel({
             min={1}
             max={25}
             value={draft.appleMusic.candidateLimit}
-            onChange={(event) => {
-              const next = Number(event.target.value);
-              if (!Number.isFinite(next)) return;
+            onChange={(event) =>
               updateAppleMusic({
-                candidateLimit: Math.min(25, Math.max(1, Math.round(next))),
-              });
-            }}
+                candidateLimit: Math.min(
+                  25,
+                  Math.max(1, Math.round(Number(event.target.value) || 1)),
+                ),
+              })
+            }
           />
-          <small>
-            范围 1–25。当前搜索请求已使用该值，后续候选列表将直接复用。
-          </small>
         </label>
       </section>
+
+      <CacheManagementSection
+        open={open}
+        config={draft}
+        onChange={updateCache}
+      />
 
       <section className="settings-section">
         <div className="settings-section-title">
@@ -206,24 +217,7 @@ export default function SettingsPanel({
             <h3>Apple Music 详情显示</h3>
             <p>控制歌曲详情页匹配结果中显示的字段。</p>
           </div>
-          <button
-            className="secondary-button"
-            onClick={() =>
-              setDraft((current) => ({
-                ...current,
-                display: {
-                  ...current.display,
-                  appleMusic: {
-                    ...DEFAULT_APP_CONFIG.display.appleMusic,
-                  },
-                },
-              }))
-            }
-          >
-            恢复字段默认值
-          </button>
         </div>
-
         <div className="settings-switch-list">
           {MATCH_RESULT_FIELDS.map((field) => (
             <label className="settings-switch-row" key={field.key}>

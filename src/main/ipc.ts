@@ -4,6 +4,7 @@ import { exec } from "node:child_process";
 import { FolderScanner } from "../scanner/FolderScanner";
 import { getSongByPath } from "../database/songRepository";
 import { MetadataMatchPipeline } from "../services/MetadataMatchPipeline";
+import { cacheManagementService } from "../services/CacheManagementService";
 import { getConfig, updateConfig } from "../config/ConfigService";
 import { AppConfigPatch } from "../config/AppConfig";
 import { debugLog, debugError } from "./logger";
@@ -34,63 +35,57 @@ function broadcastConfigChanged(config: ReturnType<typeof getConfig>) {
 }
 
 export function registerIPCHandlers() {
-  ipcMain.handle("config:get", () => {
-    return getConfig();
-  });
+  ipcMain.handle("config:get", () => getConfig());
 
   ipcMain.handle("config:update", (_event, patch: AppConfigPatch) => {
     const config = updateConfig(patch ?? {});
+    broadcastConfigChanged(config);
+    return config;
+  });
 
-    debugLog("CONFIG", "配置已更新", {
-      storefront: config.appleMusic.storefront,
-      candidateLimit: config.appleMusic.candidateLimit,
-      hasMediaUserToken: Boolean(config.appleMusic.mediaUserToken),
+  ipcMain.handle("cache:get-stats", () => {
+    return cacheManagementService.getStats();
+  });
+
+  ipcMain.handle("cache:clear", () => {
+    debugLog("CACHE", "手动清理缓存");
+    return cacheManagementService.clearCache();
+  });
+
+  ipcMain.handle("cache:cleanup-expired", () => {
+    debugLog("CACHE", "清理过期缓存");
+    return cacheManagementService.cleanupExpired();
+  });
+
+  ipcMain.handle("cache:set-retention-days", (_event, days: number) => {
+    const config = updateConfig({
+      cache: {
+        retentionDays: days,
+      },
     });
-
     broadcastConfigChanged(config);
     return config;
   });
 
   ipcMain.handle("select-folder", async () => {
-    debugLog("IPC", "select-folder 开始");
-    const result = await dialog.showOpenDialog({
-      properties: ["openDirectory"],
-    });
-
-    debugLog("IPC", "select-folder 结果", result.filePaths[0]);
-
+    const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
     if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0];
   });
 
   ipcMain.handle("scan-folder", async (event, folderPath: string) => {
-    debugLog("SCAN", "开始扫描", folderPath);
-
-    const result = await folderScanner.scanFolder(folderPath, (progress) => {
-      debugLog("SCAN", "扫描进度", progress);
+    return folderScanner.scanFolder(folderPath, (progress) => {
       event.sender.send("scan-progress", progress);
     });
-
-    debugLog("SCAN", "扫描完成", { count: result.length });
-    return result;
   });
 
   ipcMain.handle("get-song-detail", async (_event, filePath: string) => {
-    debugLog("IPC", "读取歌曲详情", filePath);
     return getSongByPath(filePath);
   });
 
   ipcMain.handle("match-song", async (_event, song: any) => {
-    debugLog("MATCH", "开始匹配", {
-      path: song?.path,
-      title: song?.title,
-      artist: song?.artist,
-    });
-
     try {
-      const result = await metadataMatchPipeline.process(song.path);
-      debugLog("MATCH", "匹配完成", result);
-      return result;
+      return await metadataMatchPipeline.process(song.path);
     } catch (error) {
       debugError("MATCH", "匹配失败", error);
       throw error;
@@ -98,21 +93,14 @@ export function registerIPCHandlers() {
   });
 
   ipcMain.handle("open-file-location", async (_event, filePath: string) => {
-    debugLog("FILE", "打开文件位置", filePath);
-    try {
-      if (!filePath) return false;
-      const opened = await openWindowsPath(path.dirname(filePath));
-      if (opened) return true;
-      shell.showItemInFolder(filePath);
-      return true;
-    } catch (error) {
-      debugError("FILE", "打开文件位置失败", error);
-      return false;
-    }
+    if (!filePath) return false;
+    const opened = await openWindowsPath(path.dirname(filePath));
+    if (opened) return true;
+    shell.showItemInFolder(filePath);
+    return true;
   });
 
   ipcMain.handle("open-lyrics-file", async (_event, lyricsPath?: string) => {
-    debugLog("FILE", "打开歌词文件", lyricsPath);
     if (!lyricsPath) return false;
     const opened = await openWindowsPath(lyricsPath);
     if (opened) return true;

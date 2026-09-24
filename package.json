@@ -14,6 +14,7 @@
     "test:metadata-search": "tsx src/test/metadataSearchCliTest.ts",
     "test:local-pipeline": "tsx src/test/localMetadataPipelineTest.ts",
     "test:audio-reader": "tsx src/test/audioMetadataReaderTest.ts",
+    "test:cache-management": "tsx src/test/cacheManagementTest.ts",
     "postinstall": "electron-builder install-app-deps"
   },
   "keywords": ["music", "metadata", "apple-music", "electron"],
