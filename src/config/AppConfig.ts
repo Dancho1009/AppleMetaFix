@@ -27,6 +27,7 @@ export interface AppConfig {
   };
   cache: {
     retentionDays: number;
+    lastCleanupTime: string | null;
   };
   display: {
     appleMusic: Record<AppleMusicDisplayFieldKey, boolean>;
@@ -49,6 +50,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   },
   cache: {
     retentionDays: 30,
+    lastCleanupTime: null,
   },
   display: {
     appleMusic: {
@@ -91,6 +93,15 @@ function normalizeRetentionDays(value: unknown): number {
   return Math.min(3650, Math.max(1, Math.round(parsed)));
 }
 
+function normalizeLastCleanupTime(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized || null;
+}
+
 export function normalizeAppConfig(input?: AppConfigPatch | null): AppConfig {
   const storefront =
     String(input?.appleMusic?.storefront ?? DEFAULT_APP_CONFIG.appleMusic.storefront)
@@ -112,6 +123,9 @@ export function normalizeAppConfig(input?: AppConfigPatch | null): AppConfig {
     cache: {
       retentionDays: normalizeRetentionDays(
         input?.cache?.retentionDays ?? DEFAULT_APP_CONFIG.cache.retentionDays,
+      ),
+      lastCleanupTime: normalizeLastCleanupTime(
+        input?.cache?.lastCleanupTime ?? DEFAULT_APP_CONFIG.cache.lastCleanupTime,
       ),
     },
     display: {
