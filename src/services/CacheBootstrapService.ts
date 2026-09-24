@@ -1,21 +1,14 @@
-import { CachePolicyService } from './CachePolicyService';
-
-const DEFAULT_RETENTION_DAYS = 30;
-
-export interface CacheBootstrapOptions {
-  retentionDays?: number;
-}
+import { cacheManagementService } from "./CacheManagementService";
 
 export class CacheBootstrapService {
-  private readonly cachePolicyService = new CachePolicyService();
+  initialize(): void {
+    const result = cacheManagementService.cleanupExpired();
 
-  initialize(options: CacheBootstrapOptions = {}): void {
-    const retentionDays = options.retentionDays ?? DEFAULT_RETENTION_DAYS;
-
-    console.log('[Cache] initialize cleanup, retentionDays:', retentionDays);
-
-    this.cachePolicyService.cleanup({
-      retentionDays,
+    console.log("[Cache] initialize cleanup", {
+      searchDeleted: result.searchDeleted,
+      trackDeleted: result.trackDeleted,
+      totalDeleted: result.totalDeleted,
+      cleanupTime: result.cleanupTime,
     });
   }
 }
