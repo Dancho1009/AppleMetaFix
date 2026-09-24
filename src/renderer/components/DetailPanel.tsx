@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { AppConfig } from "../../config/AppConfig";
+import type { MatchPipelineResult } from "../../services/MetadataMatchPipeline";
+import type { MatchResult } from "../../services/MetadataMatchService";
 import {
   formatDuration,
   getMatchResultFields,
@@ -7,15 +9,43 @@ import {
 } from "../services/DisplayConfigService";
 import SidePanel from "./SidePanel";
 
+function getCandidateKey(candidate: MatchResult, index: number) {
+  const { track } = candidate;
+  return [
+    track.storefront || "unknown",
+    track.id || track.isrc || `${track.title || "track"}-${index}`,
+  ].join(":");
+}
+
+function getConfidenceLabel(confidence: MatchResult["confidence"]) {
+  if (confidence === "high") return "高";
+  if (confidence === "medium") return "中";
+  return "低";
+}
+
+function getIdentityLabel(candidate: MatchResult) {
+  if (candidate.identity.level === "danger") return "高风险";
+  if (candidate.identity.level === "warning") return "需确认";
+  return "身份一致";
+}
+
 export default function DetailPanel({
   open,
   song,
   config,
+  matchResult,
+  selectedCandidateKey,
+  onMatchResultChange,
+  onSelectCandidate,
   onClose,
 }: {
   open: boolean;
   song: any;
   config: AppConfig;
+  matchResult: MatchPipelineResult | null;
+  selectedCandidateKey?: string;
+  onMatchResultChange: (result: MatchPipelineResult) => void;
+  onSelectCandidate: (candidateKey: string) => void;
   onClose: () => void;
 }) {
   const api: any = (window as any).appleMetaFix;
@@ -23,7 +53,6 @@ export default function DetailPanel({
     "embedded",
   );
   const [matching, setMatching] = useState(false);
-  const [matchResult, setMatchResult] = useState<any>(null);
   const cover =
     song.coverDataUrl ||
     (song.coverPath
@@ -40,7 +69,8 @@ export default function DetailPanel({
   const matchSong = async () => {
     setMatching(true);
     try {
-      setMatchResult(await api.matchSong(song));
+      const result = await api.matchSong(song);
+      onMatchResultChange(result);
     } catch (error) {
       console.error("[MATCH:UI] 匹配异常", error);
     } finally {
@@ -48,12 +78,21 @@ export default function DetailPanel({
     }
   };
 
-  const appleMatch = matchResult?.match;
+  const candidates = matchResult?.candidates ?? [];
+  const recommended = matchResult?.match ?? null;
+  const selectedCandidate =
+    candidates.find(
+      (candidate, index) =>
+        getCandidateKey(candidate, index) === selectedCandidateKey,
+    ) ??
+    recommended ??
+    null;
+  const appleMatch = selectedCandidate;
   const matchFields = getMatchResultFields(config);
   const scoreDetails =
     appleMatch?.scoreDetails ||
-    appleMatch?.details ||
-    appleMatch?.analysis ||
+    (appleMatch as any)?.details ||
+    (appleMatch as any)?.analysis ||
     {};
 
   const localDurationMs =
@@ -101,14 +140,53 @@ export default function DetailPanel({
 
       <section className="detail-section match-section">
         <div className="detail-section-heading">
-          <h3>Apple Music</h3>
+          <div>
+            <h3>Apple Music</h3>
+            {matchResult && (
+              <span className="match-source">
+                来源：{matchResult.source === "cache" ? "缓存" : "Apple Music"}
+              </span>
+            )}
+          </div>
           <button onClick={matchSong} disabled={matching}>
-            {matching ? "匹配中..." : "匹配 Apple Music"}
+            {matching ? "匹配中..." : matchResult ? "重新匹配" : "匹配 Apple Music"}
           </button>
         </div>
 
         {appleMatch && (
           <div className="apple-match-result">
+            <div className="match-summary">
+              <div>
+                <strong>
+                  {selectedCandidateKey ? "当前选择" : "系统推荐"}
+                </strong>
+                <span className="match-score">{appleMatch.score} 分</span>
+                <span className={`confidence-badge confidence-${appleMatch.confidence}`}>
+                  置信度：{getConfidenceLabel(appleMatch.confidence)}
+                </span>
+              </div>
+              <span
+                className={`identity-badge identity-${appleMatch.identity.level}`}
+              >
+                {getIdentityLabel(appleMatch)}
+              </span>
+            </div>
+
+            {appleMatch.identity.level !== "none" && (
+              <div
+                className={`identity-warning identity-warning-${appleMatch.identity.level}`}
+              >
+                <strong>
+                  {appleMatch.identity.level === "danger"
+                    ? "版本身份风险较高"
+                    : "请确认歌曲版本"}
+                </strong>
+                {appleMatch.identity.reasons.map((reason) => (
+                  <p key={reason}>{reason}</p>
+                ))}
+              </div>
+            )}
+
             {matchFields.map((field) => {
               let value = getMatchResultValue(appleMatch, field.key);
 
@@ -154,6 +232,95 @@ export default function DetailPanel({
               </div>
             </details>
           </div>
+        )}
+
+        {candidates.length > 0 && (
+          <div className="candidate-list">
+            <div className="candidate-list-heading">
+              <h4>候选版本</h4>
+              <span>共 {candidates.length} 个，按匹配分数排序</span>
+            </div>
+
+            {candidates.map((candidate, index) => {
+              const key = getCandidateKey(candidate, index);
+              const isRecommended =
+                recommended?.track.id === candidate.track.id &&
+                recommended?.track.storefront === candidate.track.storefront;
+              const isSelected = selectedCandidateKey
+                ? selectedCandidateKey === key
+                : isRecommended;
+              const artwork = candidate.track.artwork?.replace(
+                "{w}x{h}",
+                "120x120",
+              );
+
+              return (
+                <article
+                  className={`candidate-card ${isSelected ? "candidate-card-selected" : ""}`}
+                  key={key}
+                >
+                  {artwork ? (
+                    <img
+                      className="candidate-artwork"
+                      src={artwork}
+                      alt="candidate artwork"
+                    />
+                  ) : (
+                    <div className="candidate-artwork candidate-artwork-empty">
+                      无封面
+                    </div>
+                  )}
+
+                  <div className="candidate-content">
+                    <div className="candidate-title-row">
+                      <div>
+                        <strong>{candidate.track.title || "未知标题"}</strong>
+                        {isRecommended && (
+                          <span className="recommended-badge">系统推荐</span>
+                        )}
+                      </div>
+                      <span className="candidate-score">
+                        {candidate.score} 分
+                      </span>
+                    </div>
+
+                    <p>{candidate.track.artist || "未知艺术家"}</p>
+                    <p>{candidate.track.album || "未知专辑"}</p>
+
+                    <div className="candidate-meta">
+                      <span>
+                        置信度：{getConfidenceLabel(candidate.confidence)}
+                      </span>
+                      <span>区域：{candidate.track.storefront || "-"}</span>
+                      <span
+                        className={`identity-text identity-text-${candidate.identity.level}`}
+                      >
+                        {getIdentityLabel(candidate)}
+                      </span>
+                    </div>
+
+                    {candidate.identity.level !== "none" && (
+                      <div className="candidate-warning">
+                        {candidate.identity.reasons.join("；")}
+                      </div>
+                    )}
+
+                    <button
+                      className={isSelected ? "secondary-button" : ""}
+                      disabled={isSelected}
+                      onClick={() => onSelectCandidate(key)}
+                    >
+                      {isSelected ? "已选择" : "选择此版本"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {matchResult && candidates.length === 0 && (
+          <p className="empty-match-result">没有找到可用的 Apple Music 候选结果。</p>
         )}
       </section>
 
