@@ -49,16 +49,12 @@ export function registerIPCHandlers() {
 
   ipcMain.handle("cache:clear", () => {
     debugLog("CACHE", "手动清理缓存");
-    const result = cacheManagementService.clearCache();
-    broadcastConfigChanged(getConfig());
-    return result;
+    return cacheManagementService.clearCache();
   });
 
   ipcMain.handle("cache:cleanup-expired", () => {
     debugLog("CACHE", "清理过期缓存");
-    const result = cacheManagementService.cleanupExpired();
-    broadcastConfigChanged(getConfig());
-    return result;
+    return cacheManagementService.cleanupExpired();
   });
 
   ipcMain.handle("cache:set-retention-days", (_event, days: number) => {
