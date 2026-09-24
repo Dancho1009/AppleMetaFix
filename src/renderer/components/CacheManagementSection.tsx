@@ -17,6 +17,7 @@ interface CacheCleanupResult {
 }
 
 interface Props {
+  open: boolean;
   config: AppConfig;
   onChange: (patch: Partial<AppConfig["cache"]>) => void;
 }
@@ -46,7 +47,11 @@ function formatCleanupTime(value: string | null): string {
   return date.toLocaleString();
 }
 
-export default function CacheManagementSection({ config, onChange }: Props) {
+export default function CacheManagementSection({
+  open,
+  config,
+  onChange,
+}: Props) {
   const api: any = (window as any).appleMetaFix;
   const [stats, setStats] = useState<CacheStats>({
     searchCount: 0,
@@ -69,8 +74,11 @@ export default function CacheManagementSection({ config, onChange }: Props) {
   };
 
   useEffect(() => {
+    if (!open) return;
+
+    setMessage("");
     refresh();
-  }, []);
+  }, [open]);
 
   const cleanupExpired = async () => {
     setLoading(true);
