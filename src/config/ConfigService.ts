@@ -49,6 +49,10 @@ export function updateConfig(patch: AppConfigPatch): AppConfig {
       ...current.appleMusic,
       ...(patch.appleMusic ?? {}),
     },
+    cache: {
+      ...current.cache,
+      ...(patch.cache ?? {}),
+    },
     display: {
       appleMusic: {
         ...current.display.appleMusic,
