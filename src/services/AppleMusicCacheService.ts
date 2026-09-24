@@ -9,6 +9,7 @@ import {
   findAppleMusicTracksByMetadata,
   getAppleMusicTrackCount,
 } from "../database/appleMusicTrackRepository";
+import { getAppleMusicCacheSizeBytes } from "../database/appleMusicCacheStatsRepository";
 import { TrackMetadata } from "../providers/AppleMusicProvider";
 import {
   normalizeAlbum,
@@ -27,6 +28,7 @@ export interface AppleMusicCacheQuery {
 export interface AppleMusicCacheStats {
   trackCount: number;
   searchCount: number;
+  sizeBytes: number;
 }
 
 function normalizeStorefront(value?: string): string {
@@ -173,6 +175,7 @@ export class AppleMusicCacheService {
     return {
       trackCount: getAppleMusicTrackCount(),
       searchCount: getAppleMusicSearchCount(),
+      sizeBytes: getAppleMusicCacheSizeBytes(),
     };
   }
 
