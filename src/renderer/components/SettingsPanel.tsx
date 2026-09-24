@@ -27,7 +27,12 @@ const STOREFRONTS = [
   { value: "gb", label: "英国 (gb)" },
 ];
 
-export default function SettingsPanel({ open, config, onClose, onSaved }: SettingsPanelProps) {
+export default function SettingsPanel({
+  open,
+  config,
+  onClose,
+  onSaved,
+}: SettingsPanelProps) {
   const api: any = (window as any).appleMetaFix;
   const [draft, setDraft] = useState<AppConfig>(() => normalizeAppConfig(config));
   const [showToken, setShowToken] = useState(false);
@@ -75,7 +80,10 @@ export default function SettingsPanel({ open, config, onClose, onSaved }: Settin
     }));
   };
 
-  const updateDisplayField = (key: AppleMusicDisplayFieldKey, enabled: boolean) => {
+  const updateDisplayField = (
+    key: AppleMusicDisplayFieldKey,
+    enabled: boolean,
+  ) => {
     setDraft((current) => ({
       ...current,
       display: {
@@ -105,45 +113,103 @@ export default function SettingsPanel({ open, config, onClose, onSaved }: Settin
   };
 
   return (
-    <SidePanel open={open} title="设置" subtitle="修改后保存即可立即应用，无需重启应用。" onClose={onClose} width="normal" footer={
-      <div className="settings-footer">
-        <div className="settings-footer-left">
-          <button className="danger-light-button" onClick={() => setDraft(normalizeAppConfig(DEFAULT_APP_CONFIG))} disabled={saving}>
-            恢复全部默认
-          </button>
-          {error && <span className="settings-error">{error}</span>}
+    <SidePanel
+      open={open}
+      title="设置"
+      subtitle="修改后保存即可立即应用，无需重启应用。"
+      onClose={onClose}
+      width="normal"
+      footer={
+        <div className="settings-footer">
+          <div className="settings-footer-left">
+            <button
+              className="danger-light-button"
+              onClick={() => setDraft(normalizeAppConfig(DEFAULT_APP_CONFIG))}
+              disabled={saving}
+            >
+              恢复全部默认
+            </button>
+            {error && <span className="settings-error">{error}</span>}
+          </div>
+          <div>
+            <button
+              className="secondary-button"
+              onClick={onClose}
+              disabled={saving}
+            >
+              取消
+            </button>
+            <button onClick={save} disabled={saving}>
+              {saving ? "保存中..." : "保存设置"}
+            </button>
+          </div>
         </div>
-        <div>
-          <button className="secondary-button" onClick={onClose} disabled={saving}>取消</button>
-          <button onClick={save} disabled={saving}>{saving ? "保存中..." : "保存设置"}</button>
-        </div>
-      </div>
-    }>
+      }
+    >
       <section className="settings-section">
         <h3>Apple Music</h3>
+
         <label className="settings-field">
           <span>Media User Token</span>
           <div className="token-input-row">
-            <input type={showToken ? "text" : "password"} value={draft.appleMusic.mediaUserToken} placeholder="输入 media-user-token" onChange={(event) => updateAppleMusic({ mediaUserToken: event.target.value })} />
-            <button className="secondary-button token-toggle" onClick={() => setShowToken((value) => !value)}>{showToken ? "隐藏" : "显示"}</button>
+            <input
+              type={showToken ? "text" : "password"}
+              value={draft.appleMusic.mediaUserToken}
+              placeholder="输入 media-user-token"
+              onChange={(event) =>
+                updateAppleMusic({ mediaUserToken: event.target.value })
+              }
+            />
+            <button
+              className="secondary-button token-toggle"
+              onClick={() => setShowToken((value) => !value)}
+            >
+              {showToken ? "隐藏" : "显示"}
+            </button>
           </div>
           <small>仅保存在本地 config/config.json，不提交到 Git。</small>
         </label>
 
         <label className="settings-field">
           <span>Storefront</span>
-          <select value={draft.appleMusic.storefront} onChange={(event) => updateAppleMusic({ storefront: event.target.value })}>
-            {storefrontOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          <select
+            value={draft.appleMusic.storefront}
+            onChange={(event) =>
+              updateAppleMusic({ storefront: event.target.value })
+            }
+          >
+            {storefrontOptions.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
           </select>
         </label>
 
         <label className="settings-field">
           <span>候选搜索数量</span>
-          <input type="number" min={1} max={25} value={draft.appleMusic.candidateLimit} onChange={(event) => updateAppleMusic({ candidateLimit: Math.min(25, Math.max(1, Math.round(Number(event.target.value) || 1))) })} />
+          <input
+            type="number"
+            min={1}
+            max={25}
+            value={draft.appleMusic.candidateLimit}
+            onChange={(event) =>
+              updateAppleMusic({
+                candidateLimit: Math.min(
+                  25,
+                  Math.max(1, Math.round(Number(event.target.value) || 1)),
+                ),
+              })
+            }
+          />
         </label>
       </section>
 
-      <CacheManagementSection config={draft} onChange={updateCache} />
+      <CacheManagementSection
+        open={open}
+        config={draft}
+        onChange={updateCache}
+      />
 
       <section className="settings-section">
         <div className="settings-section-title">
@@ -156,7 +222,13 @@ export default function SettingsPanel({ open, config, onClose, onSaved }: Settin
           {MATCH_RESULT_FIELDS.map((field) => (
             <label className="settings-switch-row" key={field.key}>
               <span>{field.label}</span>
-              <input type="checkbox" checked={draft.display.appleMusic[field.key]} onChange={(event) => updateDisplayField(field.key, event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={draft.display.appleMusic[field.key]}
+                onChange={(event) =>
+                  updateDisplayField(field.key, event.target.checked)
+                }
+              />
             </label>
           ))}
         </div>
