@@ -74,3 +74,40 @@ tr:hover{background:#f8fafc;}
   .settings-footer{align-items:flex-end;flex-direction:column;}
   .side-panel-normal,.side-panel-wide{width:100vw;}
 }
+
+.match-source{display:block;margin-top:4px;color:#64748b;font-size:12px;}
+.match-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin-bottom:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;}
+.match-summary>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.match-score{font-weight:700;color:#1d4ed8;}
+.confidence-badge,.identity-badge,.recommended-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:600;}
+.confidence-high{background:#ecfdf5;color:#047857;}
+.confidence-medium{background:#fffbeb;color:#b45309;}
+.confidence-low{background:#fef2f2;color:#b91c1c;}
+.identity-none{background:#ecfdf5;color:#047857;}
+.identity-warning{background:#fffbeb;color:#b45309;}
+.identity-danger{background:#fef2f2;color:#b91c1c;}
+.identity-warning{margin-bottom:14px;padding:10px 12px;border-radius:8px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;}
+.identity-warning-danger{border-color:#fecaca;background:#fef2f2;color:#991b1b;}
+.identity-warning p{margin:4px 0 0;}
+.candidate-list{margin-top:22px;padding-top:18px;border-top:1px solid #e5e7eb;}
+.candidate-list-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.candidate-list-heading h4{margin:0;font-size:15px;}
+.candidate-list-heading span{color:#64748b;font-size:12px;}
+.candidate-card{display:flex;gap:12px;padding:12px;margin-bottom:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;}
+.candidate-card-selected{border-color:#93c5fd;background:#eff6ff;box-shadow:0 0 0 1px #bfdbfe inset;}
+.candidate-artwork{width:88px;height:88px;object-fit:cover;border-radius:8px;flex-shrink:0;}
+.candidate-artwork-empty{display:flex;align-items:center;justify-content:center;background:#f8fafc;border:1px dashed #cbd5e1;color:#94a3b8;font-size:12px;}
+.candidate-content{flex:1;min-width:0;}
+.candidate-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.candidate-title-row>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;}
+.candidate-title-row strong{overflow-wrap:anywhere;}
+.recommended-badge{background:#dbeafe;color:#1d4ed8;}
+.candidate-score{white-space:nowrap;font-weight:700;color:#1d4ed8;}
+.candidate-content p{margin:4px 0;color:#475569;}
+.candidate-meta{display:flex;gap:8px 12px;flex-wrap:wrap;margin:8px 0;color:#64748b;font-size:12px;}
+.identity-text-none{color:#047857;}
+.identity-text-warning{color:#b45309;font-weight:600;}
+.identity-text-danger{color:#b91c1c;font-weight:600;}
+.candidate-warning{margin:8px 0;padding:8px 10px;border-radius:7px;background:#fff7ed;color:#9a3412;font-size:12px;line-height:1.5;}
+.candidate-card button{margin-top:4px;margin-right:0;}
+.empty-match-result{color:#64748b;}
