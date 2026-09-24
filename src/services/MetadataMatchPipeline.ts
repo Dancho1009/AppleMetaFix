@@ -11,20 +11,28 @@ import {
   MetadataMatchService,
 } from "./MetadataMatchService";
 
+export interface MatchPipelineResult {
+  localTrack: Awaited<ReturnType<LocalMetadataReader["read"]>>;
+  match: MatchResult | null;
+  candidates: MatchResult[];
+  source: "cache" | "apple-music";
+}
+
 export class MetadataMatchPipeline {
   private reader = new LocalMetadataReader();
   private matcher = new MetadataMatchService();
   private appleMusic = new AppleMusicCatalogProvider();
   private cache = new AppleMusicCacheService();
 
-  async process(filePath: string) {
+  async process(filePath: string): Promise<MatchPipelineResult> {
     const localTrack = await this.reader.read(filePath);
     const cacheQuery = this.createCacheQuery(localTrack);
 
     console.log("[MATCH] local track", localTrack);
 
-    let candidates = this.cache.findCandidates(cacheQuery);
-    let match = this.matcher.match(localTrack, candidates);
+    let trackCandidates = this.cache.findCandidates(cacheQuery);
+    let candidates = this.matcher.rank(localTrack, trackCandidates);
+    let match = candidates[0] ?? null;
 
     if (this.isAcceptableCacheMatch(match)) {
       console.log("[MATCH CACHE] hit", {
@@ -39,7 +47,7 @@ export class MetadataMatchPipeline {
         localTrack,
         match,
         candidates,
-        source: "cache" as const,
+        source: "cache",
       };
     }
 
@@ -75,19 +83,20 @@ export class MetadataMatchPipeline {
       });
     }
 
-    candidates = this.cache.findCandidates(cacheQuery);
+    trackCandidates = this.cache.findCandidates(cacheQuery);
 
-    if (candidates.length === 0) {
-      candidates = safeRemoteCandidates;
+    if (trackCandidates.length === 0) {
+      trackCandidates = safeRemoteCandidates;
     }
 
-    match = this.matcher.match(localTrack, candidates);
+    candidates = this.matcher.rank(localTrack, trackCandidates);
+    match = candidates[0] ?? null;
 
     return {
       localTrack,
       match,
       candidates,
-      source: "apple-music" as const,
+      source: "apple-music",
     };
   }
 
