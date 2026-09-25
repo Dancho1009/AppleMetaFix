@@ -15,9 +15,15 @@
     "test:local-pipeline": "tsx src/test/localMetadataPipelineTest.ts",
     "test:audio-reader": "tsx src/test/audioMetadataReaderTest.ts",
     "test:cache-management": "tsx src/test/cacheManagementTest.ts",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "test:candidate-ranking": "tsx src/test/metadataCandidateRankingTest.ts"
   },
-  "keywords": ["music", "metadata", "apple-music", "electron"],
+  "keywords": [
+    "music",
+    "metadata",
+    "apple-music",
+    "electron"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@types/better-sqlite3": "latest",

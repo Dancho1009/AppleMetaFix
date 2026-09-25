@@ -8,6 +8,7 @@ import {
   DEFAULT_APP_CONFIG,
   normalizeAppConfig,
 } from "../config/AppConfig";
+import type { MatchPipelineResult } from "../services/MetadataMatchPipeline";
 
 interface SongItem {
   path: string;
@@ -58,6 +59,12 @@ export default function App() {
   const [dashboard, setDashboard] = useState<LibraryStats | null>(null);
   const [filter, setFilter] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [matchResults, setMatchResults] = useState<
+    Record<string, MatchPipelineResult>
+  >({});
+  const [selectedCandidateKeys, setSelectedCandidateKeys] = useState<
+    Record<string, string>
+  >({});
   const [config, setConfig] = useState<AppConfig>(() =>
     normalizeAppConfig(DEFAULT_APP_CONFIG),
   );
@@ -148,10 +155,31 @@ export default function App() {
     setFolder(dir);
     setDashboard(null);
     setScanDone(false);
+    setSelectedSong(null);
+    setSelectedSongId(null);
+    setMatchResults({});
+    setSelectedCandidateKeys({});
 
     const result = (await api.scanFolder(dir)) || [];
     setSongs(result);
     setScanDone(true);
+  };
+
+  const updateMatchResult = (
+    songPath: string,
+    result: MatchPipelineResult,
+  ) => {
+    setMatchResults((current) => ({
+      ...current,
+      [songPath]: result,
+    }));
+  };
+
+  const selectCandidate = (songPath: string, candidateKey: string) => {
+    setSelectedCandidateKeys((current) => ({
+      ...current,
+      [songPath]: candidateKey,
+    }));
   };
 
   return (
@@ -247,6 +275,14 @@ export default function App() {
           open={!settingsOpen}
           song={selectedSong}
           config={config}
+          matchResult={matchResults[selectedSong.path] ?? null}
+          selectedCandidateKey={selectedCandidateKeys[selectedSong.path]}
+          onMatchResultChange={(result) =>
+            updateMatchResult(selectedSong.path, result)
+          }
+          onSelectCandidate={(candidateKey) =>
+            selectCandidate(selectedSong.path, candidateKey)
+          }
           onClose={() => setSelectedSong(null)}
         />
       )}
