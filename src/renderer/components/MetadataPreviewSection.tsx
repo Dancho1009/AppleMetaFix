@@ -68,11 +68,7 @@ export default function MetadataPreviewSection({
         .filter((item) => item.selectable && item.selectedByDefault)
         .map((item) => item.field),
     );
-  }, [
-    preview.filePath,
-    preview.appleMusicTrackId,
-    preview.storefront,
-  ]);
+  }, [preview]);
 
   const selected = useMemo(
     () => new Set<MetadataPreviewField>(selectedFields),
@@ -152,7 +148,7 @@ export default function MetadataPreviewSection({
               <div className="metadata-preview-label">
                 <strong>{item.label}</strong>
                 <span>
-                  {!item.selectable
+                  {!item.after
                     ? "Apple Music无可用值"
                     : item.changed
                       ? "将发生变化"
