@@ -5,6 +5,8 @@ import { FolderScanner } from "../scanner/FolderScanner";
 import { getSongByPath } from "../database/songRepository";
 import { MetadataMatchPipeline } from "../services/MetadataMatchPipeline";
 import type { MatchResult } from "../services/MetadataMatchService";
+import type { MetadataChangePlan } from "../models/MetadataChangePlan";
+import { metadataWriterService } from "../services/MetadataWriterService";
 import { songMatchConfirmationService } from "../services/SongMatchConfirmationService";
 import { cacheManagementService } from "../services/CacheManagementService";
 import { getConfig, updateConfig } from "../config/ConfigService";
@@ -114,6 +116,24 @@ export function registerIPCHandlers() {
         return confirmation;
       } catch (error) {
         debugError("MATCH", "保存歌曲匹配确认失败", error);
+        throw error;
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "metadata-writer:dry-run",
+    (_event, plan: MetadataChangePlan) => {
+      try {
+        debugLog("WRITER", "执行Metadata写入Dry Run", {
+          filePath: plan?.filePath,
+          changeCount: Array.isArray(plan?.changes)
+            ? plan.changes.length
+            : 0,
+        });
+        return metadataWriterService.dryRun(plan);
+      } catch (error) {
+        debugError("WRITER", "Metadata写入Dry Run失败", error);
         throw error;
       }
     },
