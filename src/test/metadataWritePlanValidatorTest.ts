@@ -105,6 +105,40 @@ function run() {
   assert.ok(incompleteCodes.includes("missing-storefront"));
   assert.ok(incompleteCodes.includes("empty-change-plan"));
 
+  const malformedPlan = {
+    filePath: "D:/Music/test.flac",
+    appleMusicTrackId: 123,
+    storefront: null,
+    changes: [
+      {
+        field: "artist",
+        label: "艺术家",
+        before: "old",
+        after: 456,
+        kind: "text",
+      },
+      null,
+    ],
+  } as unknown as MetadataChangePlan;
+
+  const malformedCodes = issueCodes(malformedPlan);
+  assert.ok(
+    malformedCodes.includes("missing-apple-music-id"),
+    "非字符串Apple Music ID应被安全拒绝",
+  );
+  assert.ok(
+    malformedCodes.includes("missing-storefront"),
+    "非字符串地区应被安全拒绝",
+  );
+  assert.ok(
+    malformedCodes.includes("empty-target-value"),
+    "非字符串目标值应被安全拒绝",
+  );
+  assert.ok(
+    malformedCodes.includes("unsupported-field"),
+    "空变更项应被安全拒绝",
+  );
+
   console.log("Metadata writer validator test passed");
 }
 
