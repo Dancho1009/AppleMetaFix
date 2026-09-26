@@ -122,3 +122,31 @@ tr:hover{background:#f8fafc;}
 .confirmed-current-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;background:#dcfce7;color:#047857;font-size:12px;font-weight:700;}
 .match-confirm-error{color:#b91c1c;font-size:12px;}
 .confirmed-candidate-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;background:#dcfce7;color:#047857;font-size:12px;font-weight:600;}
+
+
+.metadata-preview-section{padding-top:20px;}
+.metadata-preview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px;}
+.metadata-preview-heading h3{margin:0 0 4px;}
+.metadata-preview-heading p{margin:0;color:#64748b;font-size:12px;line-height:1.5;}
+.metadata-preview-status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:700;white-space:nowrap;}
+.metadata-preview-summary{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:9px;background:#f8fafc;color:#475569;font-size:12px;}
+.metadata-preview-summary button{margin:0;}
+.metadata-preview-list{display:flex;flex-direction:column;gap:8px;}
+.metadata-preview-row{display:grid;grid-template-columns:auto 92px minmax(0,1fr);gap:10px;align-items:center;padding:11px 12px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;cursor:pointer;}
+.metadata-preview-row input{width:17px;height:17px;accent-color:#2563eb;}
+.metadata-preview-row-changed{border-color:#cbd5e1;}
+.metadata-preview-row-selected{border-color:#93c5fd;background:#eff6ff;}
+.metadata-preview-label{display:flex;flex-direction:column;gap:3px;}
+.metadata-preview-label span{color:#64748b;font-size:11px;}
+.metadata-preview-values{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;min-width:0;}
+.metadata-preview-values>div{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere;}
+.metadata-preview-value-label{color:#94a3b8;font-size:10px;text-transform:uppercase;}
+.metadata-preview-arrow{color:#94a3b8;font-weight:700;}
+.metadata-preview-artwork{width:58px;height:58px;object-fit:cover;border-radius:7px;border:1px solid #e5e7eb;}
+.metadata-preview-empty{display:flex;align-items:center;justify-content:center;width:58px;height:58px;border:1px dashed #cbd5e1;border-radius:7px;background:#f8fafc;color:#94a3b8;font-size:10px;}
+
+@media(max-width:640px){
+  .metadata-preview-row{grid-template-columns:auto 1fr;align-items:start;}
+  .metadata-preview-values{grid-column:2;grid-template-columns:1fr;}
+  .metadata-preview-arrow{transform:rotate(90deg);width:max-content;}
+}

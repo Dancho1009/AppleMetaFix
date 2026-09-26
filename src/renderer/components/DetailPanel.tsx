@@ -2,12 +2,14 @@ import React, { useMemo, useState } from "react";
 import { AppConfig } from "../../config/AppConfig";
 import type { MatchPipelineResult } from "../../services/MetadataMatchPipeline";
 import type { MatchResult } from "../../services/MetadataMatchService";
+import type { MetadataPreviewField } from "../../models/MetadataPreview";
 import type { SongMatchConfirmation } from "../../models/SongMatchConfirmation";
 import {
   formatDuration,
   getMatchResultFields,
   getMatchResultValue,
 } from "../services/DisplayConfigService";
+import MetadataPreviewSection from "./MetadataPreviewSection";
 import SidePanel from "./SidePanel";
 
 function getCandidateKey(candidate: MatchResult, index: number) {
@@ -37,6 +39,8 @@ export default function DetailPanel({
   matchResult,
   selectedCandidateKey,
   confirmation,
+  previewSelectedFields,
+  onPreviewSelectedFieldsChange,
   onMatchResultChange,
   onSelectCandidate,
   onConfirmCandidate,
@@ -48,6 +52,8 @@ export default function DetailPanel({
   matchResult: MatchPipelineResult | null;
   selectedCandidateKey?: string;
   confirmation: SongMatchConfirmation | null;
+  previewSelectedFields: MetadataPreviewField[];
+  onPreviewSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
   onMatchResultChange: (result: MatchPipelineResult) => void;
   onSelectCandidate: (candidateKey: string) => void;
   onConfirmCandidate: (
@@ -412,6 +418,15 @@ export default function DetailPanel({
           <p className="empty-match-result">没有找到可用的 Apple Music 候选结果。</p>
         )}
       </section>
+
+      {confirmation && (
+        <MetadataPreviewSection
+          song={song}
+          confirmation={confirmation}
+          selectedFields={previewSelectedFields}
+          onSelectedFieldsChange={onPreviewSelectedFieldsChange}
+        />
+      )}
 
       <section className="detail-section audio-info-block">
         <h3>音频信息</h3>
