@@ -133,13 +133,37 @@ export function getAppleMusicSearchCount(): number {
   return row.count;
 }
 
-export function clearAppleMusicSearchCache(): void {
+export interface AppleMusicSearchCacheClearResult {
+  searchDeleted: number;
+  trackDeleted: number;
+  totalDeleted: number;
+}
+
+export function clearAppleMusicSearchCache(): AppleMusicSearchCacheClearResult {
   const db = getDatabase();
 
   const transaction = db.transaction(() => {
-    db.prepare("DELETE FROM apple_music_searches").run();
-    db.prepare("DELETE FROM apple_music_tracks").run();
+    const searchResult = db.prepare(
+      "DELETE FROM apple_music_searches",
+    ).run();
+
+    const trackResult = db.prepare(`
+      DELETE FROM apple_music_tracks
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM song_matches
+        WHERE
+          song_matches.apple_music_track_id = apple_music_tracks.id
+          AND song_matches.confirmed = 1
+      )
+    `).run();
+
+    return {
+      searchDeleted: searchResult.changes,
+      trackDeleted: trackResult.changes,
+      totalDeleted: searchResult.changes + trackResult.changes,
+    };
   });
 
-  transaction();
+  return transaction();
 }
