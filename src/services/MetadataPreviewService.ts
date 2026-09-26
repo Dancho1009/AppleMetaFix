@@ -1,4 +1,9 @@
-import type { MetadataPreview, MetadataPreviewItem } from "../models/MetadataPreview";
+import type {
+  MetadataPreview,
+  MetadataPreviewField,
+  MetadataPreviewItem,
+} from "../models/MetadataPreview";
+import type { MetadataChangePlan } from "../models/MetadataChangePlan";
 import type { SongMatchConfirmation } from "../models/SongMatchConfirmation";
 
 export interface LocalMetadataPreviewSource {
@@ -96,5 +101,41 @@ export function createMetadataPreview(
     defaultSelectedCount: items.filter(
       (item) => item.selectable && item.selectedByDefault,
     ).length,
+  };
+}
+
+
+export function getDefaultMetadataPreviewFields(
+  preview: MetadataPreview,
+): MetadataPreviewField[] {
+  return preview.items
+    .filter((item) => item.selectable && item.selectedByDefault)
+    .map((item) => item.field);
+}
+
+export function createMetadataChangePlan(
+  preview: MetadataPreview,
+  selectedFields: MetadataPreviewField[],
+): MetadataChangePlan {
+  const selected = new Set(selectedFields);
+
+  return {
+    filePath: preview.filePath,
+    appleMusicTrackId: preview.appleMusicTrackId,
+    storefront: preview.storefront,
+    changes: preview.items
+      .filter(
+        (item) =>
+          item.changed &&
+          item.selectable &&
+          selected.has(item.field),
+      )
+      .map((item) => ({
+        field: item.field,
+        label: item.label,
+        before: item.before,
+        after: item.after,
+        kind: item.kind,
+      })),
   };
 }
