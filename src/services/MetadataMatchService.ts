@@ -58,7 +58,7 @@ export class MetadataMatchService {
   return candidates
    .map((track) => {
     const scoreDetails = this.scoreDetails(local, track);
-    const identity = this.identityScore(local, track);
+    const identity = this.identityScore(local, track, scoreDetails);
     const score = this.calculateScore(scoreDetails, identity.penalty);
 
     return {
@@ -76,8 +76,24 @@ export class MetadataMatchService {
   return this.rank(local, candidates)[0] ?? null;
  }
 
- private identityScore(local: LocalTrackInfo, track: TrackMetadata): MatchIdentityInfo {
-  const result = this.identityAnalyzer.analyze(local.artist, track.artist);
+ private identityScore(
+  local: LocalTrackInfo,
+  track: TrackMetadata,
+  details: MatchScoreDetails,
+ ): MatchIdentityInfo {
+  const analyzed = this.identityAnalyzer.analyze(local.artist, track.artist);
+  const result =
+   this.hasStrongRepairEvidence(details) && analyzed.artistMatch === "conflict"
+    ? {
+       ...analyzed,
+       identity: "possible_version" as const,
+       versionRisk: 35,
+       reasons: [
+        ...analyzed.reasons,
+        "标题与时长高度一致，本地艺术家信息可能需要修复",
+       ],
+      }
+    : analyzed;
   const policy = this.identityPolicy.evaluate(result);
 
   return {
@@ -97,9 +113,24 @@ export class MetadataMatchService {
   const rawScore = fields.filter((field) => field.available)
    .reduce((sum, field) => sum + field.score * field.weight, 0) / availableWeight;
 
-  return Math.max(0, Math.min(100,
+  const calculated = Math.max(0, Math.min(100,
    Math.round(rawScore - details.conflictPenalty - identityPenalty),
    this.getEvidenceCap(details)));
+
+  if (this.hasStrongRepairEvidence(details)) {
+   return Math.max(calculated, 72);
+  }
+
+  return calculated;
+ }
+
+ private hasStrongRepairEvidence(details: MatchScoreDetails): boolean {
+  return (
+   details.title.available &&
+   details.title.score >= 95 &&
+   details.duration.available &&
+   details.duration.score >= 90
+  );
  }
 
  private scoreDetails(local: LocalTrackInfo, track: TrackMetadata): MatchScoreDetails {

@@ -9,6 +9,8 @@ import {
   normalizeAppConfig,
 } from "../config/AppConfig";
 import type { MatchPipelineResult } from "../services/MetadataMatchPipeline";
+import type { MatchResult } from "../services/MetadataMatchService";
+import type { SongMatchConfirmation } from "../models/SongMatchConfirmation";
 
 interface SongItem {
   path: string;
@@ -47,6 +49,13 @@ function getLyricsLabel(song: SongItem) {
   return result.length ? result.join(" + ") : "无歌词";
 }
 
+function getConfirmationCandidateKey(confirmation: SongMatchConfirmation) {
+  return [
+    confirmation.track.storefront || "unknown",
+    confirmation.track.id || confirmation.track.isrc || "confirmed-track",
+  ].join(":");
+}
+
 export default function App() {
   const api: any = (window as any).appleMetaFix;
   const [folder, setFolder] = useState("");
@@ -64,6 +73,9 @@ export default function App() {
   >({});
   const [selectedCandidateKeys, setSelectedCandidateKeys] = useState<
     Record<string, string>
+  >({});
+  const [matchConfirmations, setMatchConfirmations] = useState<
+    Record<string, SongMatchConfirmation | null>
   >({});
   const [config, setConfig] = useState<AppConfig>(() =>
     normalizeAppConfig(DEFAULT_APP_CONFIG),
@@ -148,6 +160,30 @@ export default function App() {
     }
   }, [selectedSongId]);
 
+  useEffect(() => {
+    if (!selectedSongId) return;
+
+    const songPath = selectedSongId;
+
+    api.getSongMatchConfirmation(songPath)
+      .then((confirmation: SongMatchConfirmation | null) => {
+        setMatchConfirmations((current) => ({
+          ...current,
+          [songPath]: confirmation,
+        }));
+
+        if (confirmation) {
+          setSelectedCandidateKeys((current) => ({
+            ...current,
+            [songPath]: getConfirmationCandidateKey(confirmation),
+          }));
+        }
+      })
+      .catch((error: unknown) =>
+        console.error("[MATCH:UI] 读取确认结果失败", error),
+      );
+  }, [selectedSongId]);
+
   const selectFolder = async () => {
     const dir = await api.selectFolder();
     if (!dir) return;
@@ -159,6 +195,7 @@ export default function App() {
     setSelectedSongId(null);
     setMatchResults({});
     setSelectedCandidateKeys({});
+    setMatchConfirmations({});
 
     const result = (await api.scanFolder(dir)) || [];
     setSongs(result);
@@ -180,6 +217,28 @@ export default function App() {
       ...current,
       [songPath]: candidateKey,
     }));
+  };
+
+  const confirmCandidate = async (
+    songPath: string,
+    candidate: MatchResult,
+  ) => {
+    const confirmation = (await api.confirmSongMatch(
+      songPath,
+      candidate,
+    )) as SongMatchConfirmation;
+
+    setMatchConfirmations((current) => ({
+      ...current,
+      [songPath]: confirmation,
+    }));
+
+    setSelectedCandidateKeys((current) => ({
+      ...current,
+      [songPath]: getConfirmationCandidateKey(confirmation),
+    }));
+
+    return confirmation;
   };
 
   return (
@@ -277,11 +336,15 @@ export default function App() {
           config={config}
           matchResult={matchResults[selectedSong.path] ?? null}
           selectedCandidateKey={selectedCandidateKeys[selectedSong.path]}
+          confirmation={matchConfirmations[selectedSong.path] ?? null}
           onMatchResultChange={(result) =>
             updateMatchResult(selectedSong.path, result)
           }
           onSelectCandidate={(candidateKey) =>
             selectCandidate(selectedSong.path, candidateKey)
+          }
+          onConfirmCandidate={(candidate) =>
+            confirmCandidate(selectedSong.path, candidate)
           }
           onClose={() => setSelectedSong(null)}
         />

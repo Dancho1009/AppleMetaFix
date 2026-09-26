@@ -5,22 +5,8 @@ interface SizeRow {
 }
 
 export function getAppleMusicCacheSizeBytes(): number {
-  const db = getDatabase();
-
-  try {
-    const row = db.prepare(`
-      SELECT COALESCE(SUM(pgsize), 0) AS sizeBytes
-      FROM dbstat
-      WHERE name IN (
-        'apple_music_tracks',
-        'apple_music_searches',
-        'apple_music_search_results'
-      )
-    `).get() as SizeRow | undefined;
-
-    return Math.max(0, Number(row?.sizeBytes ?? 0));
-  } catch {
-    const row = db.prepare(`
+  const row = getDatabase()
+    .prepare(`
       SELECT
         (
           SELECT COALESCE(SUM(
@@ -36,7 +22,14 @@ export function getAppleMusicCacheSizeBytes(): number {
             LENGTH(COALESCE(raw_json, '')) +
             96
           ), 0)
-          FROM apple_music_tracks
+          FROM apple_music_tracks AS tracks
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM song_matches
+            WHERE
+              song_matches.apple_music_track_id = tracks.id
+              AND song_matches.confirmed = 1
+          )
         ) +
         (
           SELECT COALESCE(SUM(
@@ -52,8 +45,8 @@ export function getAppleMusicCacheSizeBytes(): number {
           SELECT COUNT(*) * 32
           FROM apple_music_search_results
         ) AS sizeBytes
-    `).get() as SizeRow | undefined;
+    `)
+    .get() as SizeRow | undefined;
 
-    return Math.max(0, Number(row?.sizeBytes ?? 0));
-  }
+  return Math.max(0, Number(row?.sizeBytes ?? 0));
 }

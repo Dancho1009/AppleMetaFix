@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  AppleMusicSearchCacheClearResult,
   clearAppleMusicSearchCache,
   getAppleMusicSearchCount,
   getAppleMusicSearchResults,
@@ -179,7 +180,7 @@ export class AppleMusicCacheService {
     };
   }
 
-  clear(): void {
-    clearAppleMusicSearchCache();
+  clear(): AppleMusicSearchCacheClearResult {
+    return clearAppleMusicSearchCache();
   }
 }

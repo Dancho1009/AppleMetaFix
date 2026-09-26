@@ -5,11 +5,17 @@ import {
   AppleMusicCacheService,
 } from "./AppleMusicCacheService";
 import { LanguageDetector } from "./LanguageDetector";
+import {
+  buildStorefrontSearchOrder,
+  mergeSearchCandidates,
+} from "./AppleMusicSearchStrategy";
 import { LocalMetadataReader } from "./LocalMetadataReader";
 import {
   MatchResult,
   MetadataMatchService,
 } from "./MetadataMatchService";
+import { mergeConfirmedTrack } from "./MatchCandidateMerge";
+import { songMatchConfirmationService } from "./SongMatchConfirmationService";
 
 export interface MatchPipelineResult {
   localTrack: Awaited<ReturnType<LocalMetadataReader["read"]>>;
@@ -27,6 +33,8 @@ export class MetadataMatchPipeline {
   async process(filePath: string): Promise<MatchPipelineResult> {
     const localTrack = await this.reader.read(filePath);
     const cacheQuery = this.createCacheQuery(localTrack);
+    const confirmedTrack =
+      songMatchConfirmationService.get(filePath)?.track ?? null;
 
     console.log("[MATCH] local track", localTrack);
 
@@ -41,7 +49,15 @@ export class MetadataMatchPipeline {
         score: match?.score,
         confidence: match?.confidence,
         matchedStorefront: match?.track?.storefront,
+        confirmedStorefront: confirmedTrack?.storefront,
       });
+
+      trackCandidates = mergeConfirmedTrack(
+        trackCandidates,
+        confirmedTrack,
+      );
+      candidates = this.matcher.rank(localTrack, trackCandidates);
+      match = candidates[0] ?? null;
 
       return {
         localTrack,
@@ -56,6 +72,7 @@ export class MetadataMatchPipeline {
       count: candidates.length,
       score: match?.score,
       confidence: match?.confidence,
+      confirmedStorefront: confirmedTrack?.storefront,
     });
 
     const remoteCandidates = await this.appleMusic.search(
@@ -83,12 +100,15 @@ export class MetadataMatchPipeline {
       });
     }
 
-    trackCandidates = this.cache.findCandidates(cacheQuery);
+    trackCandidates = mergeSearchCandidates(
+      this.cache.findCandidates(cacheQuery),
+      safeRemoteCandidates,
+    );
 
-    if (trackCandidates.length === 0) {
-      trackCandidates = safeRemoteCandidates;
-    }
-
+    trackCandidates = mergeConfirmedTrack(
+      trackCandidates,
+      confirmedTrack,
+    );
     candidates = this.matcher.rank(localTrack, trackCandidates);
     match = candidates[0] ?? null;
 
@@ -110,10 +130,12 @@ export class MetadataMatchPipeline {
       .trim()
       .toLowerCase();
 
-    const storefronts =
-      configuredStorefront === "auto"
-        ? LanguageDetector.detect(localTrack).storefronts
-        : [configuredStorefront];
+    const detectedStorefronts =
+      LanguageDetector.detect(localTrack).storefronts;
+    const storefronts = buildStorefrontSearchOrder(
+      configuredStorefront,
+      detectedStorefronts,
+    );
 
     return {
       title: localTrack.title,

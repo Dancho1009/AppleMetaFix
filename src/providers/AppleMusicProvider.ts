@@ -1,5 +1,12 @@
 import { getConfig } from "../config/ConfigService";
 import { LanguageDetector } from "../services/LanguageDetector";
+import {
+  buildAppleMusicSearchTerms,
+  buildStorefrontSearchOrder,
+  hasExactTitleMatch,
+  mergeSearchCandidates,
+  prioritizeSearchCandidates,
+} from "../services/AppleMusicSearchStrategy";
 import { AppleMusicAuthProvider } from "./AppleMusicAuthProvider";
 
 export interface TrackMetadata {
@@ -111,19 +118,17 @@ export class AppleMusicProvider {
   ): Promise<TrackMetadata[]> {
     const preference = LanguageDetector.detect({ title, artist, album });
     const settings = this.getRuntimeSettings();
+    const terms = buildAppleMusicSearchTerms(title, artist, album);
+    const storefronts = buildStorefrontSearchOrder(
+      settings.storefront,
+      preference.storefronts,
+    );
 
-    const terms = [
-      [title, artist, album],
-      [artist, title, album],
-      [title],
-    ].map((items) => items.filter(Boolean).join(" "));
-
-    const storefronts =
-      settings.storefront === "auto"
-        ? preference.storefronts
-        : [settings.storefront];
+    let candidates: TrackMetadata[] = [];
 
     for (const storefront of storefronts) {
+      let storefrontCandidates: TrackMetadata[] = [];
+
       for (const term of terms) {
         const results = await this.search(
           term,
@@ -138,16 +143,30 @@ export class AppleMusicProvider {
           term,
           limit: settings.candidateLimit,
           count: results.length,
+          exactTitle: hasExactTitleMatch(title, results),
           first: results[0],
         });
 
-        if (results.length > 0) {
-          return results;
+        storefrontCandidates = mergeSearchCandidates(
+          storefrontCandidates,
+          results,
+        );
+        candidates = mergeSearchCandidates(candidates, results);
+
+        if (hasExactTitleMatch(title, storefrontCandidates)) {
+          break;
         }
+      }
+
+      if (hasExactTitleMatch(title, storefrontCandidates)) {
+        break;
       }
     }
 
-    return [];
+    return prioritizeSearchCandidates(title, candidates).slice(
+      0,
+      settings.candidateLimit,
+    );
   }
 
   private async search(

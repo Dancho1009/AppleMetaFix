@@ -178,7 +178,9 @@ export default function CacheManagementSection({
             清空缓存
           </button>
         </div>
-        <small>保留时间在保存设置后生效；清空缓存会立即执行。</small>
+        <small>
+          保留时间在保存设置后生效；清空缓存会立即执行。已确认的歌曲匹配会保留，不计入缓存统计。
+        </small>
       </label>
 
       <div className="settings-footer">

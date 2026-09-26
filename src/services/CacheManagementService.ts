@@ -43,16 +43,11 @@ export class CacheManagementService {
   }
 
   clearCache(): CacheCleanupSummary {
-    const before = cacheService.getStats();
-
-    cacheService.clear();
-
+    const result = cacheService.clear();
     const cleanupTime = this.recordCleanupTime();
 
     return {
-      searchDeleted: before.searchCount,
-      trackDeleted: before.trackCount,
-      totalDeleted: before.searchCount + before.trackCount,
+      ...result,
       cleanupTime,
       stats: this.getStats(),
     };
