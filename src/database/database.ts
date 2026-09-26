@@ -94,6 +94,25 @@ export function getDatabase() {
       FOREIGN KEY(track_id) REFERENCES apple_music_tracks(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS song_matches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      song_id INTEGER NOT NULL,
+      apple_music_track_id INTEGER NOT NULL,
+      score INTEGER NOT NULL,
+      confidence TEXT NOT NULL,
+      confirmed INTEGER NOT NULL DEFAULT 1,
+      confirmed_at INTEGER NOT NULL,
+      FOREIGN KEY(song_id) REFERENCES songs(id) ON DELETE CASCADE,
+      FOREIGN KEY(apple_music_track_id) REFERENCES apple_music_tracks(id) ON DELETE CASCADE,
+      UNIQUE(song_id, apple_music_track_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_song_matches_song_id
+      ON song_matches(song_id);
+
+    CREATE INDEX IF NOT EXISTS idx_song_matches_confirmed
+      ON song_matches(song_id, confirmed);
+
     CREATE INDEX IF NOT EXISTS idx_apple_music_tracks_normalized_title
       ON apple_music_tracks(normalized_title);
 
