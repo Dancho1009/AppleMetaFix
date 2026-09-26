@@ -32,7 +32,10 @@ function addIssue(
 }
 
 export function detectMetadataWriteFormat(filePath: string): MetadataWriteFormat {
-  const normalized = filePath.trim().toLowerCase();
+  const normalized =
+    typeof filePath === "string"
+      ? filePath.trim().toLowerCase()
+      : "";
 
   if (normalized.endsWith(".flac")) return "flac";
   if (normalized.endsWith(".mp3")) return "mp3";
@@ -54,7 +57,10 @@ export function validateMetadataChangePlanStructure(
     addIssue(issues, "missing-file-path", "写入计划缺少目标文件路径");
   }
 
-  if (!plan?.appleMusicTrackId?.trim()) {
+  if (
+    typeof plan?.appleMusicTrackId !== "string" ||
+    !plan.appleMusicTrackId.trim()
+  ) {
     addIssue(
       issues,
       "missing-apple-music-id",
@@ -62,7 +68,10 @@ export function validateMetadataChangePlanStructure(
     );
   }
 
-  if (!plan?.storefront?.trim()) {
+  if (
+    typeof plan?.storefront !== "string" ||
+    !plan.storefront.trim()
+  ) {
     addIssue(
       issues,
       "missing-storefront",
@@ -109,7 +118,12 @@ export function validateMetadataChangePlanStructure(
     }
     seenFields.add(change.field);
 
-    if (!change.after?.trim()) {
+    const before =
+      typeof change.before === "string" ? change.before : "";
+    const after =
+      typeof change.after === "string" ? change.after.trim() : "";
+
+    if (!after) {
       addIssue(
         issues,
         "empty-target-value",
@@ -118,7 +132,7 @@ export function validateMetadataChangePlanStructure(
       );
     }
 
-    if (change.before === change.after) {
+    if (before === after) {
       addIssue(
         issues,
         "unchanged-value",
@@ -138,7 +152,7 @@ export function validateMetadataChangePlanStructure(
       }
 
       try {
-        const url = new URL(change.after);
+        const url = new URL(after);
         if (url.protocol !== "https:") {
           addIssue(
             issues,
@@ -168,7 +182,7 @@ export function validateMetadataChangePlanStructure(
       );
     }
 
-    if (change.field === "year" && !/^\d{4}$/.test(change.after.trim())) {
+    if (change.field === "year" && !/^\d{4}$/.test(after)) {
       addIssue(
         issues,
         "invalid-year",
