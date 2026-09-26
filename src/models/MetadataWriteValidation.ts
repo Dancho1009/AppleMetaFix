@@ -12,6 +12,8 @@ export interface MetadataWriteCheck {
     | "readable"
     | "writable"
     | "format"
+    | "audio-metadata"
+    | "source-metadata"
     | "changes";
   label: string;
   ok: boolean;
