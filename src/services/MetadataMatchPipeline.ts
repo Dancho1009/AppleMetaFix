@@ -5,6 +5,10 @@ import {
   AppleMusicCacheService,
 } from "./AppleMusicCacheService";
 import { LanguageDetector } from "./LanguageDetector";
+import {
+  buildStorefrontSearchOrder,
+  mergeSearchCandidates,
+} from "./AppleMusicSearchStrategy";
 import { LocalMetadataReader } from "./LocalMetadataReader";
 import {
   MatchResult,
@@ -96,11 +100,10 @@ export class MetadataMatchPipeline {
       });
     }
 
-    trackCandidates = this.cache.findCandidates(cacheQuery);
-
-    if (trackCandidates.length === 0) {
-      trackCandidates = safeRemoteCandidates;
-    }
+    trackCandidates = mergeSearchCandidates(
+      this.cache.findCandidates(cacheQuery),
+      safeRemoteCandidates,
+    );
 
     trackCandidates = mergeConfirmedTrack(
       trackCandidates,
@@ -127,10 +130,12 @@ export class MetadataMatchPipeline {
       .trim()
       .toLowerCase();
 
-    const storefronts =
-      configuredStorefront === "auto"
-        ? LanguageDetector.detect(localTrack).storefronts
-        : [configuredStorefront];
+    const detectedStorefronts =
+      LanguageDetector.detect(localTrack).storefronts;
+    const storefronts = buildStorefrontSearchOrder(
+      configuredStorefront,
+      detectedStorefronts,
+    );
 
     return {
       title: localTrack.title,
