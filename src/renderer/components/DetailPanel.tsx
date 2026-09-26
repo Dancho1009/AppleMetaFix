@@ -8,6 +8,7 @@ import {
   getMatchResultFields,
   getMatchResultValue,
 } from "../services/DisplayConfigService";
+import MetadataPreviewSection from "./MetadataPreviewSection";
 import SidePanel from "./SidePanel";
 
 function getCandidateKey(candidate: MatchResult, index: number) {
@@ -412,6 +413,13 @@ export default function DetailPanel({
           <p className="empty-match-result">没有找到可用的 Apple Music 候选结果。</p>
         )}
       </section>
+
+      {confirmation && (
+        <MetadataPreviewSection
+          song={song}
+          confirmation={confirmation}
+        />
+      )}
 
       <section className="detail-section audio-info-block">
         <h3>音频信息</h3>
