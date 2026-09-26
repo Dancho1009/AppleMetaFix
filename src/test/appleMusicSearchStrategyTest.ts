@@ -26,8 +26,14 @@ function run() {
 
   assert.deepEqual(
     buildStorefrontSearchOrder("jp", ["jp", "cn", "us"]),
+    ["jp"],
+    "显式 storefront 应只搜索当前区域",
+  );
+
+  assert.deepEqual(
+    buildStorefrontSearchOrder("auto", ["jp", "cn", "us"]),
     ["jp", "cn", "us"],
-    "显式 storefront 应优先，但保留检测到的回退区域",
+    "auto 模式应按检测结果进行多区域搜索",
   );
 
   const jpResults = [
@@ -45,22 +51,22 @@ function run() {
     "只有无关搜索结果时不能提前停止",
   );
 
-  const cnResults = [
+  const jpTitleOnlyResults = [
     {
       id: "1804621958",
-      storefront: "cn",
+      storefront: "jp",
       title: "BITTER TASTE",
       artist: "ノーラ starring 豊口めぐみ",
     },
   ];
 
-  const merged = mergeSearchCandidates(jpResults, cnResults);
+  const merged = mergeSearchCandidates(jpResults, jpTitleOnlyResults);
   const prioritized = prioritizeSearchCandidates("BITTER TASTE", merged);
 
   assert.equal(
-    hasExactTitleMatch("BITTER TASTE", cnResults),
+    hasExactTitleMatch("BITTER TASTE", jpTitleOnlyResults),
     true,
-    "CN 结果包含精确标题时应停止继续扩散搜索",
+    "同一区域的纯标题搜索命中精确标题后应停止继续搜索",
   );
   assert.equal(
     prioritized[0].id,
