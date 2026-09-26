@@ -123,7 +123,7 @@ export function registerIPCHandlers() {
 
   ipcMain.handle(
     "metadata-writer:dry-run",
-    (_event, plan: MetadataChangePlan) => {
+    async (_event, plan: MetadataChangePlan) => {
       try {
         debugLog("WRITER", "执行Metadata写入Dry Run", {
           filePath: plan?.filePath,
@@ -131,7 +131,7 @@ export function registerIPCHandlers() {
             ? plan.changes.length
             : 0,
         });
-        return metadataWriterService.dryRun(plan);
+        return await metadataWriterService.dryRun(plan);
       } catch (error) {
         debugError("WRITER", "Metadata写入Dry Run失败", error);
         throw error;
