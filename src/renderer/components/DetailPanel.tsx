@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { AppConfig } from "../../config/AppConfig";
 import type { MatchPipelineResult } from "../../services/MetadataMatchPipeline";
 import type { MatchResult } from "../../services/MetadataMatchService";
+import type { SongMatchConfirmation } from "../../models/SongMatchConfirmation";
 import {
   formatDuration,
   getMatchResultFields,
@@ -35,8 +36,10 @@ export default function DetailPanel({
   config,
   matchResult,
   selectedCandidateKey,
+  confirmation,
   onMatchResultChange,
   onSelectCandidate,
+  onConfirmCandidate,
   onClose,
 }: {
   open: boolean;
@@ -44,8 +47,12 @@ export default function DetailPanel({
   config: AppConfig;
   matchResult: MatchPipelineResult | null;
   selectedCandidateKey?: string;
+  confirmation: SongMatchConfirmation | null;
   onMatchResultChange: (result: MatchPipelineResult) => void;
   onSelectCandidate: (candidateKey: string) => void;
+  onConfirmCandidate: (
+    candidate: MatchResult,
+  ) => Promise<SongMatchConfirmation>;
   onClose: () => void;
 }) {
   const api: any = (window as any).appleMetaFix;
@@ -53,6 +60,8 @@ export default function DetailPanel({
     "embedded",
   );
   const [matching, setMatching] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
   const cover =
     song.coverDataUrl ||
     (song.coverPath
@@ -89,6 +98,13 @@ export default function DetailPanel({
     ? candidates[selectedCandidateIndex]
     : recommended;
   const appleMatch = selectedCandidate ?? null;
+  const isCurrentConfirmed = Boolean(
+    appleMatch &&
+      confirmation &&
+      appleMatch.track.id === confirmation.track.id &&
+      (appleMatch.track.storefront || "unknown") ===
+        (confirmation.track.storefront || "unknown"),
+  );
   const matchFields = getMatchResultFields(config);
   const scoreDetails =
     appleMatch?.scoreDetails ||
@@ -99,6 +115,24 @@ export default function DetailPanel({
   const localDurationMs =
     song.durationInMillis ??
     (song.duration ? song.duration * 1000 : undefined);
+
+  const confirmCurrentCandidate = async () => {
+    if (!appleMatch || isCurrentConfirmed) return;
+
+    setConfirming(true);
+    setConfirmError("");
+
+    try {
+      await onConfirmCandidate(appleMatch);
+    } catch (error) {
+      console.error("[MATCH:UI] 保存确认结果失败", error);
+      setConfirmError(
+        error instanceof Error ? error.message : "保存确认结果失败",
+      );
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   return (
     <SidePanel
@@ -154,6 +188,33 @@ export default function DetailPanel({
           </button>
         </div>
 
+        {confirmation && (
+          <div className="confirmed-match-card">
+            <div className="confirmed-match-heading">
+              <strong>已确认匹配</strong>
+              <span>✓ 已持久化</span>
+            </div>
+            <p>{confirmation.track.title || "未知标题"}</p>
+            <p>
+              {confirmation.track.artist || "未知艺术家"} ·{" "}
+              {confirmation.track.album || "未知专辑"}
+            </p>
+            <div className="confirmed-match-meta">
+              <span>{confirmation.score} 分</span>
+              <span>
+                置信度：{getConfidenceLabel(confirmation.confidence)}
+              </span>
+              <span>
+                区域：{confirmation.track.storefront || "-"}
+              </span>
+              <span>
+                确认时间：
+                {new Date(confirmation.confirmedAt).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        )}
+
         {appleMatch && (
           <div className="apple-match-result">
             <div className="match-summary">
@@ -171,6 +232,24 @@ export default function DetailPanel({
               >
                 {getIdentityLabel(appleMatch)}
               </span>
+            </div>
+
+            <div className="match-confirm-actions">
+              {isCurrentConfirmed ? (
+                <span className="confirmed-current-badge">
+                  ✓ 当前版本已确认
+                </span>
+              ) : (
+                <button
+                  onClick={confirmCurrentCandidate}
+                  disabled={confirming || !appleMatch.track.id}
+                >
+                  {confirming ? "确认中..." : "确认当前版本"}
+                </button>
+              )}
+              {confirmError && (
+                <span className="match-confirm-error">{confirmError}</span>
+              )}
             </div>
 
             {appleMatch.identity.level !== "none" && (
@@ -250,6 +329,10 @@ export default function DetailPanel({
               const isSelected = hasSelectedCandidate
                 ? selectedCandidateKey === key
                 : isRecommended;
+              const isConfirmed =
+                confirmation?.track.id === candidate.track.id &&
+                (confirmation?.track.storefront || "unknown") ===
+                  (candidate.track.storefront || "unknown");
               const artwork = candidate.track.artwork?.replace(
                 "{w}x{h}",
                 "120x120",
@@ -278,6 +361,11 @@ export default function DetailPanel({
                         <strong>{candidate.track.title || "未知标题"}</strong>
                         {isRecommended && (
                           <span className="recommended-badge">系统推荐</span>
+                        )}
+                        {isConfirmed && (
+                          <span className="confirmed-candidate-badge">
+                            已确认
+                          </span>
                         )}
                       </div>
                       <span className="candidate-score">
