@@ -208,7 +208,17 @@ export function findAppleMusicTracksByMetadata(
 
 export function getAppleMusicTrackCount(): number {
   const row = getDatabase()
-    .prepare("SELECT COUNT(*) AS count FROM apple_music_tracks")
+    .prepare(`
+      SELECT COUNT(*) AS count
+      FROM apple_music_tracks AS tracks
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM song_matches
+        WHERE
+          song_matches.apple_music_track_id = tracks.id
+          AND song_matches.confirmed = 1
+      )
+    `)
     .get() as { count: number };
 
   return row.count;
