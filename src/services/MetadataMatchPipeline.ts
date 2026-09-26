@@ -1,5 +1,6 @@
 import { getConfig } from "../config/ConfigService";
 import { AppleMusicCatalogProvider } from "../providers/AppleMusicCatalogProvider";
+import type { TrackMetadata } from "../providers/AppleMusicProvider";
 import {
   AppleMusicCacheQuery,
   AppleMusicCacheService,
@@ -10,12 +11,48 @@ import {
   MatchResult,
   MetadataMatchService,
 } from "./MetadataMatchService";
+import { songMatchConfirmationService } from "./SongMatchConfirmationService";
 
 export interface MatchPipelineResult {
   localTrack: Awaited<ReturnType<LocalMetadataReader["read"]>>;
   match: MatchResult | null;
   candidates: MatchResult[];
   source: "cache" | "apple-music";
+}
+
+function trackIdentityKey(track: TrackMetadata): string {
+  const storefront = track.storefront?.trim().toLowerCase() || "unknown";
+  const id = track.id?.trim();
+
+  if (id) {
+    return `${storefront}:${id}`;
+  }
+
+  return [
+    storefront,
+    track.isrc ?? "",
+    track.title ?? "",
+    track.artist ?? "",
+    track.album ?? "",
+  ].join("|");
+}
+
+export function mergeConfirmedTrack(
+  candidates: TrackMetadata[],
+  confirmedTrack?: TrackMetadata | null,
+): TrackMetadata[] {
+  if (!confirmedTrack) {
+    return candidates;
+  }
+
+  const confirmedKey = trackIdentityKey(confirmedTrack);
+
+  return [
+    confirmedTrack,
+    ...candidates.filter(
+      (candidate) => trackIdentityKey(candidate) !== confirmedKey,
+    ),
+  ];
 }
 
 export class MetadataMatchPipeline {
@@ -27,6 +64,8 @@ export class MetadataMatchPipeline {
   async process(filePath: string): Promise<MatchPipelineResult> {
     const localTrack = await this.reader.read(filePath);
     const cacheQuery = this.createCacheQuery(localTrack);
+    const confirmedTrack =
+      songMatchConfirmationService.get(filePath)?.track ?? null;
 
     console.log("[MATCH] local track", localTrack);
 
@@ -41,7 +80,15 @@ export class MetadataMatchPipeline {
         score: match?.score,
         confidence: match?.confidence,
         matchedStorefront: match?.track?.storefront,
+        confirmedStorefront: confirmedTrack?.storefront,
       });
+
+      trackCandidates = mergeConfirmedTrack(
+        trackCandidates,
+        confirmedTrack,
+      );
+      candidates = this.matcher.rank(localTrack, trackCandidates);
+      match = candidates[0] ?? null;
 
       return {
         localTrack,
@@ -56,6 +103,7 @@ export class MetadataMatchPipeline {
       count: candidates.length,
       score: match?.score,
       confidence: match?.confidence,
+      confirmedStorefront: confirmedTrack?.storefront,
     });
 
     const remoteCandidates = await this.appleMusic.search(
@@ -89,6 +137,10 @@ export class MetadataMatchPipeline {
       trackCandidates = safeRemoteCandidates;
     }
 
+    trackCandidates = mergeConfirmedTrack(
+      trackCandidates,
+      confirmedTrack,
+    );
     candidates = this.matcher.rank(localTrack, trackCandidates);
     match = candidates[0] ?? null;
 
