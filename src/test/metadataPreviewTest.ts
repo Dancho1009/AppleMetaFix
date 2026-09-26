@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import type { SongMatchConfirmation } from "../models/SongMatchConfirmation";
-import { createMetadataPreview } from "../services/MetadataPreviewService";
+import {
+  createMetadataChangePlan,
+  createMetadataPreview,
+  getDefaultMetadataPreviewFields,
+} from "../services/MetadataPreviewService";
 
 function run() {
   const confirmation: SongMatchConfirmation = {
@@ -40,6 +44,28 @@ function run() {
     6,
     "本地缺失或不一致的字段应默认勾选",
   );
+
+  const defaultFields = getDefaultMetadataPreviewFields(preview);
+  assert.equal(defaultFields.length, 6, "默认选择应只包含建议修改字段");
+  assert.equal(
+    defaultFields.includes("title"),
+    false,
+    "一致标题不应进入默认变更计划",
+  );
+
+  const changePlan = createMetadataChangePlan(preview, [
+    "title",
+    "artist",
+    "artwork",
+  ]);
+  assert.deepEqual(
+    changePlan.changes.map((change) => change.field),
+    ["artist", "artwork"],
+    "变更计划应只保留被选择的真实差异",
+  );
+  assert.equal(changePlan.filePath, confirmation.songPath);
+  assert.equal(changePlan.appleMusicTrackId, "1804621958");
+  assert.equal(changePlan.storefront, "jp");
 
   const title = preview.items.find((item) => item.field === "title");
   assert.equal(title?.changed, false, "标题一致时不应标记为修改");
