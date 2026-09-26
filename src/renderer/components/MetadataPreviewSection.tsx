@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import type {
   MetadataPreviewField,
   MetadataPreviewItem,
 } from "../../models/MetadataPreview";
 import type { SongMatchConfirmation } from "../../models/SongMatchConfirmation";
 import {
+  createMetadataChangePlan,
   createMetadataPreview,
   type LocalMetadataPreviewSource,
 } from "../../services/MetadataPreviewService";
@@ -50,41 +51,37 @@ function ArtworkValue({
 export default function MetadataPreviewSection({
   song,
   confirmation,
+  selectedFields,
+  onSelectedFieldsChange,
 }: {
   song: LocalMetadataPreviewSource;
   confirmation: SongMatchConfirmation;
+  selectedFields: MetadataPreviewField[];
+  onSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
 }) {
   const preview = useMemo(
     () => createMetadataPreview(song, confirmation),
     [song, confirmation],
   );
-  const [selectedFields, setSelectedFields] = useState<MetadataPreviewField[]>(
-    [],
-  );
-
-  useEffect(() => {
-    setSelectedFields(
-      preview.items
-        .filter((item) => item.selectable && item.selectedByDefault)
-        .map((item) => item.field),
-    );
-  }, [preview]);
-
   const selected = useMemo(
     () => new Set<MetadataPreviewField>(selectedFields),
     [selectedFields],
   );
+  const changePlan = useMemo(
+    () => createMetadataChangePlan(preview, selectedFields),
+    [preview, selectedFields],
+  );
 
   const toggleField = (field: MetadataPreviewField) => {
-    setSelectedFields((current) =>
-      current.includes(field)
-        ? current.filter((item) => item !== field)
-        : [...current, field],
+    onSelectedFieldsChange(
+      selectedFields.includes(field)
+        ? selectedFields.filter((item) => item !== field)
+        : [...selectedFields, field],
     );
   };
 
   const selectChanged = () => {
-    setSelectedFields(
+    onSelectedFieldsChange(
       preview.items
         .filter((item) => item.selectable && item.changed)
         .map((item) => item.field),
@@ -105,7 +102,7 @@ export default function MetadataPreviewSection({
 
       <div className="metadata-preview-summary">
         <span>差异 {preview.changedCount} 项</span>
-        <span>已选择 {selectedFields.length} 项</span>
+        <span>计划写入 {changePlan.changes.length} 项</span>
         <span>区域 {preview.storefront || "-"}</span>
         <button
           className="secondary-button"
@@ -116,7 +113,7 @@ export default function MetadataPreviewSection({
         </button>
         <button
           className="secondary-button"
-          onClick={() => setSelectedFields([])}
+          onClick={() => onSelectedFieldsChange([])}
           disabled={selectedFields.length === 0}
         >
           清空选择
