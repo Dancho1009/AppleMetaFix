@@ -68,6 +68,8 @@ function currentMetadataValue(
     case "artwork":
       return null;
   }
+
+  return null;
 }
 
 export class MetadataWriterService {
