@@ -4,8 +4,12 @@ import {
   existsSync,
   lstatSync,
 } from "node:fs";
+import { parseFile } from "music-metadata";
 import { getSongByPath } from "../database/songRepository";
-import type { MetadataChangePlan } from "../models/MetadataChangePlan";
+import type {
+  MetadataChange,
+  MetadataChangePlan,
+} from "../models/MetadataChangePlan";
 import type {
   MetadataWriteCheck,
   MetadataWriteDryRunResult,
@@ -39,8 +43,37 @@ function addError(
   });
 }
 
+function text(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function currentMetadataValue(
+  field: MetadataChange["field"],
+  common: Awaited<ReturnType<typeof parseFile>>["common"],
+): string | null {
+  switch (field) {
+    case "title":
+      return text(common.title);
+    case "artist":
+      return text(common.artist);
+    case "album":
+      return text(common.album);
+    case "year":
+      return text(common.year);
+    case "genre":
+      return text(common.genre?.[0]);
+    case "composer":
+      return text(common.composer?.[0]);
+    case "artwork":
+      return null;
+  }
+}
+
 export class MetadataWriterService {
-  dryRun(plan: MetadataChangePlan): MetadataWriteDryRunResult {
+  async dryRun(
+    plan: MetadataChangePlan,
+  ): Promise<MetadataWriteDryRunResult> {
     const checks: MetadataWriteCheck[] = [];
     const structuralIssues =
       validateMetadataChangePlanStructure(plan);
@@ -199,6 +232,73 @@ export class MetadataWriterService {
         ? `识别为 ${format.toUpperCase()}，允许进入Writer后续阶段`
         : "当前只接受FLAC、MP3、M4A",
     );
+
+    let parsedMetadata:
+      | Awaited<ReturnType<typeof parseFile>>
+      | null = null;
+
+    if (fileExists && regularFile && readable) {
+      try {
+        parsedMetadata = await parseFile(filePath);
+      } catch {
+        parsedMetadata = null;
+      }
+    }
+
+    const audioMetadataOk = Boolean(parsedMetadata);
+    addCheck(
+      checks,
+      "audio-metadata",
+      "音频Metadata读取",
+      audioMetadataOk,
+      audioMetadataOk
+        ? "已重新读取目标音频Metadata"
+        : "无法重新读取目标音频Metadata",
+    );
+    if (fileExists && regularFile && readable && !audioMetadataOk) {
+      addError(
+        issues,
+        "metadata-read-failed",
+        "目标文件无法被music-metadata正常解析",
+      );
+    }
+
+    const textChanges = changes.filter(
+      (change) => change?.field !== "artwork",
+    );
+    const staleFields =
+      parsedMetadata === null
+        ? []
+        : textChanges
+            .filter((change) => {
+              const current = currentMetadataValue(
+                change.field,
+                parsedMetadata.common,
+              );
+              return current !== null && current !== text(change.before);
+            })
+            .map((change) => change.field);
+
+    const sourceMetadataOk =
+      parsedMetadata !== null && staleFields.length === 0;
+    addCheck(
+      checks,
+      "source-metadata",
+      "源Metadata一致性",
+      sourceMetadataOk,
+      parsedMetadata === null
+        ? "无法验证源Metadata"
+        : staleFields.length === 0
+          ? "当前文件Metadata与Preview生成时一致"
+          : `以下字段已发生变化：${staleFields.join("、")}`,
+    );
+    if (parsedMetadata !== null && staleFields.length > 0) {
+      addError(
+        issues,
+        "source-metadata-changed",
+        "目标文件Metadata在Preview生成后发生变化，请重新扫描或重新生成Preview",
+      );
+    }
 
     const changesOk =
       changes.length > 0 &&
