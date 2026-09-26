@@ -223,8 +223,10 @@ export default function App() {
     songPath: string,
     candidate: MatchResult,
   ) => {
-    const confirmation = await api.confirmSongMatch(songPath, candidate) as
-      SongMatchConfirmation;
+    const confirmation = (await api.confirmSongMatch(
+      songPath,
+      candidate,
+    )) as SongMatchConfirmation;
 
     setMatchConfirmations((current) => ({
       ...current,
