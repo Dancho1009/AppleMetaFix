@@ -4,6 +4,8 @@ import { exec } from "node:child_process";
 import { FolderScanner } from "../scanner/FolderScanner";
 import { getSongByPath } from "../database/songRepository";
 import { MetadataMatchPipeline } from "../services/MetadataMatchPipeline";
+import type { MatchResult } from "../services/MetadataMatchService";
+import { songMatchConfirmationService } from "../services/SongMatchConfirmationService";
 import { cacheManagementService } from "../services/CacheManagementService";
 import { getConfig, updateConfig } from "../config/ConfigService";
 import { AppConfigPatch } from "../config/AppConfig";
@@ -91,6 +93,31 @@ export function registerIPCHandlers() {
       throw error;
     }
   });
+
+  ipcMain.handle("song-match:get-confirmation", (_event, filePath: string) => {
+    return songMatchConfirmationService.get(filePath);
+  });
+
+  ipcMain.handle(
+    "song-match:confirm",
+    (_event, filePath: string, match: MatchResult) => {
+      try {
+        const confirmation = songMatchConfirmationService.confirm(
+          filePath,
+          match,
+        );
+        debugLog("MATCH", "已确认歌曲匹配", {
+          filePath,
+          appleMusicId: confirmation.track.id,
+          storefront: confirmation.track.storefront,
+        });
+        return confirmation;
+      } catch (error) {
+        debugError("MATCH", "保存歌曲匹配确认失败", error);
+        throw error;
+      }
+    },
+  );
 
   ipcMain.handle("open-file-location", async (_event, filePath: string) => {
     if (!filePath) return false;
