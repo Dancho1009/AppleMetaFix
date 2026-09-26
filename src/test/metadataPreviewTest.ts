@@ -43,6 +43,7 @@ function run() {
 
   const title = preview.items.find((item) => item.field === "title");
   assert.equal(title?.changed, false, "标题一致时不应标记为修改");
+  assert.equal(title?.selectable, false, "标题一致时不应允许加入变更计划");
   assert.equal(title?.selectedByDefault, false);
 
   const artist = preview.items.find((item) => item.field === "artist");
