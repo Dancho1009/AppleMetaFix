@@ -17,7 +17,9 @@
     "test:cache-management": "tsx src/test/cacheManagementTest.ts",
     "postinstall": "electron-builder install-app-deps",
     "test:candidate-ranking": "tsx src/test/metadataCandidateRankingTest.ts",
-    "test:confirmed-candidate": "tsx src/test/confirmedCandidateMergeTest.ts"
+    "test:confirmed-candidate": "tsx src/test/confirmedCandidateMergeTest.ts",
+    "test:apple-search-strategy": "tsx src/test/appleMusicSearchStrategyTest.ts",
+    "test:metadata-repair-ranking": "tsx src/test/metadataRepairRankingTest.ts"
   },
   "keywords": [
     "music",
