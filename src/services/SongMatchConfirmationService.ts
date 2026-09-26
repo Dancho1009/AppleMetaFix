@@ -23,6 +23,14 @@ export class SongMatchConfirmationService {
       throw new Error("缺少 Apple Music 曲目ID，无法确认匹配");
     }
 
+    if (!Number.isFinite(match.score)) {
+      throw new Error("匹配分数无效，无法确认匹配");
+    }
+
+    if (!["high", "medium", "low"].includes(match.confidence)) {
+      throw new Error("匹配置信度无效，无法确认匹配");
+    }
+
     return saveSongMatchConfirmation(
       filePath,
       match.track,
