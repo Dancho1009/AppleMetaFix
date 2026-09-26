@@ -37,7 +37,7 @@ export function buildStorefrontSearchOrder(
   const order =
     configured === "auto"
       ? detected
-      : [configured, ...detected];
+      : [configured];
 
   return [...new Set(order)].filter((item) => item !== "auto");
 }
