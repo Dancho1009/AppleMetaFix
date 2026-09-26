@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { AppConfig } from "../../config/AppConfig";
 import type { MatchPipelineResult } from "../../services/MetadataMatchPipeline";
 import type { MatchResult } from "../../services/MetadataMatchService";
+import type { MetadataPreviewField } from "../../models/MetadataPreview";
 import type { SongMatchConfirmation } from "../../models/SongMatchConfirmation";
 import {
   formatDuration,
@@ -38,6 +39,8 @@ export default function DetailPanel({
   matchResult,
   selectedCandidateKey,
   confirmation,
+  previewSelectedFields,
+  onPreviewSelectedFieldsChange,
   onMatchResultChange,
   onSelectCandidate,
   onConfirmCandidate,
@@ -49,6 +52,8 @@ export default function DetailPanel({
   matchResult: MatchPipelineResult | null;
   selectedCandidateKey?: string;
   confirmation: SongMatchConfirmation | null;
+  previewSelectedFields: MetadataPreviewField[];
+  onPreviewSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
   onMatchResultChange: (result: MatchPipelineResult) => void;
   onSelectCandidate: (candidateKey: string) => void;
   onConfirmCandidate: (
@@ -418,6 +423,8 @@ export default function DetailPanel({
         <MetadataPreviewSection
           song={song}
           confirmation={confirmation}
+          selectedFields={previewSelectedFields}
+          onSelectedFieldsChange={onPreviewSelectedFieldsChange}
         />
       )}
 
