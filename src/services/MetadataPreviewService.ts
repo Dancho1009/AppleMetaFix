@@ -40,7 +40,7 @@ function createTextItem(
     before,
     after,
     changed,
-    selectable: Boolean(after),
+    selectable: changed,
     selectedByDefault: changed,
     kind: "text",
   };
@@ -81,7 +81,7 @@ export function createMetadataPreview(
       before: localArtwork,
       after: remoteArtwork,
       changed: Boolean(remoteArtwork) && localArtwork !== remoteArtwork,
-      selectable: Boolean(remoteArtwork),
+      selectable: Boolean(remoteArtwork) && localArtwork !== remoteArtwork,
       selectedByDefault: Boolean(remoteArtwork) && !localArtwork,
       kind: "artwork",
     },
