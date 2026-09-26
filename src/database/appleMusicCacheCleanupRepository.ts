@@ -31,7 +31,15 @@ export function cleanupAppleMusicCache(
 
     const trackResult = db.prepare(`
       DELETE FROM apple_music_tracks
-      WHERE last_seen_at < ?
+      WHERE
+        last_seen_at < ?
+        AND NOT EXISTS (
+          SELECT 1
+          FROM song_matches
+          WHERE
+            song_matches.apple_music_track_id = apple_music_tracks.id
+            AND song_matches.confirmed = 1
+        )
     `).run(expireAt);
 
     searchDeleted = searchResult.changes;
