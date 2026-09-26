@@ -16,7 +16,8 @@
     "test:audio-reader": "tsx src/test/audioMetadataReaderTest.ts",
     "test:cache-management": "tsx src/test/cacheManagementTest.ts",
     "postinstall": "electron-builder install-app-deps",
-    "test:candidate-ranking": "tsx src/test/metadataCandidateRankingTest.ts"
+    "test:candidate-ranking": "tsx src/test/metadataCandidateRankingTest.ts",
+    "test:confirmed-candidate": "tsx src/test/confirmedCandidateMergeTest.ts"
   },
   "keywords": [
     "music",
