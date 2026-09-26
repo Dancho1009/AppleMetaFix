@@ -10,7 +10,12 @@ import {
 } from "../config/AppConfig";
 import type { MatchPipelineResult } from "../services/MetadataMatchPipeline";
 import type { MatchResult } from "../services/MetadataMatchService";
+import type { MetadataPreviewField } from "../models/MetadataPreview";
 import type { SongMatchConfirmation } from "../models/SongMatchConfirmation";
+import {
+  createMetadataPreview,
+  getDefaultMetadataPreviewFields,
+} from "../services/MetadataPreviewService";
 
 interface SongItem {
   path: string;
@@ -76,6 +81,9 @@ export default function App() {
   >({});
   const [matchConfirmations, setMatchConfirmations] = useState<
     Record<string, SongMatchConfirmation | null>
+  >({});
+  const [metadataPreviewSelections, setMetadataPreviewSelections] = useState<
+    Record<string, MetadataPreviewField[]>
   >({});
   const [config, setConfig] = useState<AppConfig>(() =>
     normalizeAppConfig(DEFAULT_APP_CONFIG),
@@ -184,6 +192,26 @@ export default function App() {
       );
   }, [selectedSongId]);
 
+  useEffect(() => {
+    if (!selectedSong || !selectedSongId) return;
+
+    const confirmation = matchConfirmations[selectedSongId];
+    if (!confirmation) return;
+
+    setMetadataPreviewSelections((current) => {
+      if (Object.prototype.hasOwnProperty.call(current, selectedSongId)) {
+        return current;
+      }
+
+      const preview = createMetadataPreview(selectedSong, confirmation);
+
+      return {
+        ...current,
+        [selectedSongId]: getDefaultMetadataPreviewFields(preview),
+      };
+    });
+  }, [selectedSong, selectedSongId, matchConfirmations]);
+
   const selectFolder = async () => {
     const dir = await api.selectFolder();
     if (!dir) return;
@@ -196,6 +224,7 @@ export default function App() {
     setMatchResults({});
     setSelectedCandidateKeys({});
     setMatchConfirmations({});
+    setMetadataPreviewSelections({});
 
     const result = (await api.scanFolder(dir)) || [];
     setSongs(result);
@@ -219,6 +248,16 @@ export default function App() {
     }));
   };
 
+  const updateMetadataPreviewSelection = (
+    songPath: string,
+    fields: MetadataPreviewField[],
+  ) => {
+    setMetadataPreviewSelections((current) => ({
+      ...current,
+      [songPath]: fields,
+    }));
+  };
+
   const confirmCandidate = async (
     songPath: string,
     candidate: MatchResult,
@@ -237,6 +276,19 @@ export default function App() {
       ...current,
       [songPath]: getConfirmationCandidateKey(confirmation),
     }));
+
+    const localSong =
+      selectedSong?.path === songPath
+        ? selectedSong
+        : songs.find((song) => song.path === songPath);
+
+    if (localSong) {
+      const preview = createMetadataPreview(localSong, confirmation);
+      setMetadataPreviewSelections((current) => ({
+        ...current,
+        [songPath]: getDefaultMetadataPreviewFields(preview),
+      }));
+    }
 
     return confirmation;
   };
@@ -337,6 +389,12 @@ export default function App() {
           matchResult={matchResults[selectedSong.path] ?? null}
           selectedCandidateKey={selectedCandidateKeys[selectedSong.path]}
           confirmation={matchConfirmations[selectedSong.path] ?? null}
+          previewSelectedFields={
+            metadataPreviewSelections[selectedSong.path] ?? []
+          }
+          onPreviewSelectedFieldsChange={(fields) =>
+            updateMetadataPreviewSelection(selectedSong.path, fields)
+          }
           onMatchResultChange={(result) =>
             updateMatchResult(selectedSong.path, result)
           }
