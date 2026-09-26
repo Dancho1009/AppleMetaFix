@@ -111,3 +111,14 @@ tr:hover{background:#f8fafc;}
 .candidate-warning{margin:8px 0;padding:8px 10px;border-radius:7px;background:#fff7ed;color:#9a3412;font-size:12px;line-height:1.5;}
 .candidate-card button{margin-top:4px;margin-right:0;}
 .empty-match-result{color:#64748b;}
+
+.confirmed-match-card{margin-bottom:14px;padding:12px 14px;border:1px solid #86efac;border-radius:10px;background:#f0fdf4;}
+.confirmed-match-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;}
+.confirmed-match-heading span{color:#047857;font-size:12px;font-weight:600;}
+.confirmed-match-card p{margin:4px 0;color:#334155;}
+.confirmed-match-meta{display:flex;gap:8px 12px;flex-wrap:wrap;margin-top:8px;color:#64748b;font-size:12px;}
+.match-confirm-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;}
+.match-confirm-actions button{margin-right:0;}
+.confirmed-current-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;background:#dcfce7;color:#047857;font-size:12px;font-weight:700;}
+.match-confirm-error{color:#b91c1c;font-size:12px;}
+.confirmed-candidate-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;background:#dcfce7;color:#047857;font-size:12px;font-weight:600;}
