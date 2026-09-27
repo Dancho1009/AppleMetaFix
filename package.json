@@ -21,7 +21,8 @@
     "test:apple-search-strategy": "tsx src/test/appleMusicSearchStrategyTest.ts",
     "test:metadata-repair-ranking": "tsx src/test/metadataRepairRankingTest.ts",
     "test:metadata-preview": "tsx src/test/metadataPreviewTest.ts",
-    "test:metadata-writer-validator": "tsx src/test/metadataWritePlanValidatorTest.ts"
+    "test:metadata-writer-validator": "tsx src/test/metadataWritePlanValidatorTest.ts",
+    "test:flac-writer": "tsx src/test/flacVorbisCommentWriterTest.ts"
   },
   "keywords": [
     "music",
