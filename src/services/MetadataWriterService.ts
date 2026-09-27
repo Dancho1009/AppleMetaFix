@@ -61,6 +61,65 @@ function text(value: unknown): string {
   return String(value).trim();
 }
 
+function expectedConfirmedValue(
+  field: MetadataChange["field"],
+  confirmation: ReturnType<
+    typeof songMatchConfirmationService.get
+  >,
+): string {
+  const track = confirmation?.track;
+  if (!track) return "";
+
+  switch (field) {
+    case "title":
+      return text(track.title);
+    case "artist":
+      return text(track.artist);
+    case "album":
+      return text(track.album);
+    case "year":
+      return track.releaseDate?.match(/^(\d{4})/)?.[1] ?? "";
+    case "genre":
+      return track.genre?.filter(Boolean).join("; ") ?? "";
+    case "composer":
+      return text(track.composer);
+    case "artwork":
+      return text(track.artwork);
+  }
+}
+
+function sourceArtworkMatches(
+  before: string,
+  metadata: Awaited<ReturnType<typeof parseFile>>,
+): boolean {
+  const picture = metadata.common.picture?.[0];
+  const expected = text(before);
+
+  if (!expected) {
+    return !picture?.data;
+  }
+
+  if (!picture?.data) {
+    return false;
+  }
+
+  const dataUrl = expected.match(
+    /^data:([^;]+);base64,(.+)$/i,
+  );
+
+  if (!dataUrl) {
+    return true;
+  }
+
+  try {
+    return Buffer.from(picture.data).equals(
+      Buffer.from(dataUrl[2], "base64"),
+    );
+  } catch {
+    return false;
+  }
+}
+
 function currentMetadataValue(
   field: MetadataChange["field"],
   common: Awaited<ReturnType<typeof parseFile>>["common"],
