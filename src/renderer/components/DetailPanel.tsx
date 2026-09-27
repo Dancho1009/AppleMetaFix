@@ -3,6 +3,7 @@ import { AppConfig } from "../../config/AppConfig";
 import type { MatchPipelineResult } from "../../services/MetadataMatchPipeline";
 import type { MatchResult } from "../../services/MetadataMatchService";
 import type { MetadataPreviewField } from "../../models/MetadataPreview";
+import type { MetadataWriteResult } from "../../models/MetadataWriteResult";
 import type { SongMatchConfirmation } from "../../models/SongMatchConfirmation";
 import {
   formatDuration,
@@ -55,7 +56,10 @@ export default function DetailPanel({
   confirmation: SongMatchConfirmation | null;
   previewSelectedFields: MetadataPreviewField[];
   onPreviewSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
-  onMetadataWritten: (songPath: string) => Promise<void>;
+  onMetadataWritten: (
+    songPath: string,
+    result: MetadataWriteResult,
+  ) => Promise<void>;
   onMatchResultChange: (result: MatchPipelineResult) => void;
   onSelectCandidate: (candidateKey: string) => void;
   onConfirmCandidate: (
@@ -427,7 +431,9 @@ export default function DetailPanel({
           confirmation={confirmation}
           selectedFields={previewSelectedFields}
           onSelectedFieldsChange={onPreviewSelectedFieldsChange}
-          onWriteComplete={() => onMetadataWritten(song.path)}
+          onWriteComplete={(result) =>
+            onMetadataWritten(song.path, result)
+          }
         />
       )}
 
