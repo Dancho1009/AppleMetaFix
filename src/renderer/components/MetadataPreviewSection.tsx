@@ -61,7 +61,7 @@ export default function MetadataPreviewSection({
   confirmation: SongMatchConfirmation;
   selectedFields: MetadataPreviewField[];
   onSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
-  onWriteComplete: () => Promise<void>;
+  onWriteComplete: (result: MetadataWriteResult) => Promise<void>;
 }) {
   const api: any = (window as any).appleMetaFix;
   const [dryRunning, setDryRunning] = useState(false);
@@ -178,7 +178,12 @@ export default function MetadataPreviewSection({
 
       setWriteResult(result);
       setDryRunResult(null);
-      await onWriteComplete();
+
+      try {
+        await onWriteComplete(result);
+      } catch (refreshError) {
+        console.error("[WRITER:UI] 写入后刷新界面失败", refreshError);
+      }
     } catch (error) {
       console.error("[WRITER:UI] FLAC写入失败", error);
       setWriteError(
@@ -332,6 +337,11 @@ export default function MetadataPreviewSection({
           <p className="metadata-dry-run-note">
             原文件仅在临时副本验证通过后才被替换；写入失败会自动回滚。
           </p>
+          {writeResult.warning && (
+            <p className="metadata-dry-run-issues">
+              {writeResult.warning}
+            </p>
+          )}
         </div>
       )}
 
