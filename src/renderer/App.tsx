@@ -263,28 +263,26 @@ export default function App() {
     const detail = await api.getSongDetail(songPath);
     if (!detail) return;
 
-    let refreshedSong: SongItem | null = null;
+    const existingSong =
+      songs.find((song) => song.path === songPath) ??
+      (selectedSong?.path === songPath ? selectedSong : null);
+    const mergedSong: SongItem = {
+      ...(existingSong ?? { path: songPath }),
+      ...detail,
+    };
 
     setSongs((current) =>
-      current.map((song) => {
-        if (song.path !== songPath) return song;
-        refreshedSong = { ...song, ...detail };
-        return refreshedSong;
-      }),
+      current.map((song) =>
+        song.path === songPath ? { ...song, ...detail } : song,
+      ),
     );
 
-    const currentSelected =
-      selectedSong?.path === songPath ? selectedSong : null;
-    const mergedSong = currentSelected
-      ? { ...currentSelected, ...detail }
-      : refreshedSong;
-
-    if (mergedSong && selectedSongId === songPath) {
+    if (selectedSongId === songPath) {
       setSelectedSong(mergedSong);
     }
 
     const confirmation = matchConfirmations[songPath];
-    if (mergedSong && confirmation) {
+    if (confirmation) {
       const preview = createMetadataPreview(mergedSong, confirmation);
       setMetadataPreviewSelections((current) => ({
         ...current,
