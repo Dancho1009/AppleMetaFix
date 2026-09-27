@@ -165,3 +165,5 @@ tr:hover{background:#f8fafc;}
 .metadata-dry-run-issues{margin-top:10px;padding-top:8px;border-top:1px solid rgba(148,163,184,.35);color:#b91c1c;font-size:12px;}
 .metadata-dry-run-issues p{margin:4px 0;}
 .metadata-dry-run-note{margin:10px 0 0;color:#64748b;font-size:12px;}
+
+.metadata-write-button{margin-top:12px;}
