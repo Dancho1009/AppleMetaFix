@@ -158,6 +158,26 @@ function metadataValue(
   return null;
 }
 
+function verifySourceValues(
+  changes: MetadataChange[],
+  metadata: Awaited<ReturnType<typeof parseFile>>,
+) {
+  const staleFields = changes
+    .filter((change) => change.kind === "text" && change.field !== "artwork")
+    .filter(
+      (change) =>
+        metadataValue(change.field, metadata.common) !==
+        text(change.before),
+    )
+    .map((change) => change.field);
+
+  if (staleFields.length > 0) {
+    throw new Error(
+      `FLAC源Metadata在写入前发生变化：${staleFields.join("、")}。请重新生成Preview`,
+    );
+  }
+}
+
 function verifyTextChanges(
   changes: MetadataChange[],
   metadata: Awaited<ReturnType<typeof parseFile>>,
@@ -250,7 +270,10 @@ export async function writeFlacTextMetadata(
     throw new Error("FLAC首版Writer仅支持文本Metadata字段，不支持封面写入");
   }
 
+  const sourceStatBefore = await stat(filePath);
   const originalMetadata = await parseFile(filePath);
+  verifySourceValues(textChanges, originalMetadata);
+
   const structure = await readFlacStructure(filePath);
   const updatedBlocks = applyVorbisTextChanges(structure.blocks, textChanges);
   const prefix = serializeMetadataPrefix(updatedBlocks);
@@ -278,8 +301,18 @@ export async function writeFlacTextMetadata(
       createWriteStream(tempPath, { flags: "a" }),
     );
 
-    const originalStat = await stat(filePath);
-    await chmod(tempPath, originalStat.mode);
+    const sourceStatAfter = await stat(filePath);
+    const sourceUnchanged =
+      sourceStatBefore.size === sourceStatAfter.size &&
+      sourceStatBefore.mtimeMs === sourceStatAfter.mtimeMs;
+
+    if (!sourceUnchanged) {
+      throw new Error(
+        "FLAC源文件在临时文件生成期间发生变化，已取消写入",
+      );
+    }
+
+    await chmod(tempPath, sourceStatBefore.mode);
 
     const tempHandle = await open(tempPath, "r+");
     try {
