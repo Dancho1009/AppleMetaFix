@@ -272,14 +272,27 @@ export default function App() {
     const existingSong =
       songs.find((song) => song.path === songPath) ??
       (selectedSong?.path === songPath ? selectedSong : null);
+    const artworkWritten =
+      result.writtenFields.includes("artwork");
     const mergedSong: SongItem = {
       ...(existingSong ?? { path: songPath }),
       ...detail,
+      ...(artworkWritten
+        ? { coverDataUrl: undefined }
+        : {}),
     };
 
     setSongs((current) =>
       current.map((song) =>
-        song.path === songPath ? { ...song, ...detail } : song,
+        song.path === songPath
+          ? {
+              ...song,
+              ...detail,
+              ...(artworkWritten
+                ? { coverDataUrl: undefined }
+                : {}),
+            }
+          : song,
       ),
     );
 
