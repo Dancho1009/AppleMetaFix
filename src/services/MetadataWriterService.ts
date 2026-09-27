@@ -83,6 +83,8 @@ function expectedConfirmedValue(
     case "artwork":
       return text(track.artwork);
   }
+
+  return "";
 }
 
 function sourceArtworkMatches(
