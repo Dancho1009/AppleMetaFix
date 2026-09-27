@@ -287,12 +287,10 @@ export default function App() {
       setSelectedSong(mergedSong);
     }
 
-    const confirmation = matchConfirmations[songPath];
-    if (confirmation) {
-      const preview = createMetadataPreview(mergedSong, confirmation);
+    if (matchConfirmations[songPath]) {
       setMetadataPreviewSelections((current) => ({
         ...current,
-        [songPath]: getDefaultMetadataPreviewFields(preview),
+        [songPath]: [],
       }));
     }
   };
