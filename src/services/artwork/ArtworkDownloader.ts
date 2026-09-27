@@ -26,6 +26,18 @@ export interface ArtworkImageInfo {
   colors: number;
 }
 
+export function isTrustedArtworkHost(
+  hostname: string,
+): boolean {
+  const host = hostname.trim().toLowerCase();
+  return (
+    host === "mzstatic.com" ||
+    host.endsWith(".mzstatic.com") ||
+    host === "apple.com" ||
+    host.endsWith(".apple.com")
+  );
+}
+
 export function expandAppleArtworkUrl(
   url: string,
   size = DEFAULT_ARTWORK_SIZE,
@@ -190,6 +202,11 @@ function requestArtwork(
       return;
     }
 
+    if (!isTrustedArtworkHost(url.hostname)) {
+      reject(new Error("封面下载仅允许Apple官方CDN域名"));
+      return;
+    }
+
     const request = https.get(
       url,
       {
@@ -223,6 +240,11 @@ function requestArtwork(
 
           if (nextUrl.protocol !== "https:") {
             reject(new Error("封面下载重定向必须保持HTTPS"));
+            return;
+          }
+
+          if (!isTrustedArtworkHost(nextUrl.hostname)) {
+            reject(new Error("封面下载重定向离开Apple官方CDN"));
             return;
           }
 
@@ -303,6 +325,10 @@ export async function downloadArtwork(
 
   if (url.protocol !== "https:") {
     throw new Error("Apple Music封面URL必须使用HTTPS");
+  }
+
+  if (!isTrustedArtworkHost(url.hostname)) {
+    throw new Error("Apple Music封面URL不是Apple官方CDN地址");
   }
 
   const response = await requestArtwork(url, MAX_REDIRECTS);
