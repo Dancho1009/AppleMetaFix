@@ -462,7 +462,37 @@ export class MetadataWriterService {
     };
   }
 
-  async writeFlacText(
+  private async syncSongFromFile(
+    filePath: string,
+  ): Promise<void> {
+    const metadata = await this.metadataScanner.scanFile(
+      filePath,
+    );
+
+    upsertSong({
+      path: metadata.path,
+      filename: path.basename(metadata.path),
+      title: metadata.title,
+      artist: metadata.artist,
+      album: metadata.album,
+      album_artist: metadata.albumArtist,
+      composer: metadata.composer,
+      genre: metadata.genre,
+      year: metadata.year,
+      duration: metadata.duration,
+      format: metadata.format,
+      bitrate: metadata.bitrate,
+      sample_rate: metadata.sampleRate,
+      lyrics_type: metadata.lyrics?.type,
+      lyrics_path: metadata.lyricsPath,
+      embedded_lyrics:
+        metadata.lyrics?.embedded?.content ?? undefined,
+      cover_path: metadata.coverPath,
+      cover_exist: Boolean(metadata.coverPath),
+    });
+  }
+
+  async writeFlac(
     plan: MetadataChangePlan,
   ): Promise<MetadataWriteResult> {
     const validation = await this.dryRun(plan);
@@ -472,40 +502,41 @@ export class MetadataWriterService {
         .filter((issue) => issue.severity === "error")
         .map((issue) => issue.message)
         .join("；");
-      throw new Error(`写入前安全校验未通过：${messages}`);
+      throw new Error(
+        "写入前安全校验未通过：" + messages,
+      );
     }
 
     if (validation.format !== "flac") {
       throw new Error("当前实际写入阶段仅支持FLAC");
     }
 
-    if (
-      plan.changes.some(
-        (change) =>
-          change.kind !== "text" ||
-          change.field === "artwork",
-      )
-    ) {
-      throw new Error(
-        "当前FLAC Writer仅支持文本字段，封面将在后续阶段实现",
-      );
-    }
+    const artworkChange = plan.changes.find(
+      (change) => change.field === "artwork",
+    );
+    const artwork = artworkChange
+      ? await downloadArtwork(artworkChange.after)
+      : undefined;
 
-    const metadata = await writeFlacTextMetadata(
+    const metadata = await writeFlacMetadata(
       validation.filePath,
       plan.changes,
+      artwork,
     );
 
     let libraryUpdated = true;
     let warning: string | undefined;
 
     try {
-      updateSongTextMetadata(validation.filePath, metadata);
+      await this.syncSongFromFile(validation.filePath);
     } catch (error) {
       libraryUpdated = false;
       warning =
         "FLAC文件已写入并验证成功，但歌曲库Metadata刷新失败，请重新扫描音乐库";
-      console.error("[WRITER] 更新歌曲库Metadata失败", error);
+      console.error(
+        "[WRITER] 更新歌曲库Metadata失败",
+        error,
+      );
     }
 
     return {
@@ -514,12 +545,30 @@ export class MetadataWriterService {
       filePath: validation.filePath,
       format: "flac",
       changeCount: plan.changes.length,
-      writtenFields: plan.changes.map((change) => change.field),
+      writtenFields: plan.changes.map(
+        (change) => change.field,
+      ),
       metadata,
       libraryUpdated,
       warning,
       verifiedAt: Date.now(),
     };
+  }
+
+  async writeFlacText(
+    plan: MetadataChangePlan,
+  ): Promise<MetadataWriteResult> {
+    if (
+      plan.changes.some(
+        (change) =>
+          change.field === "artwork" ||
+          change.kind !== "text",
+      )
+    ) {
+      throw new Error("FLAC文本Writer不接受封面变更");
+    }
+
+    return this.writeFlac(plan);
   }
 }
 
