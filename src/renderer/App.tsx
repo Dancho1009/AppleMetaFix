@@ -11,6 +11,7 @@ import {
 import type { MatchPipelineResult } from "../services/MetadataMatchPipeline";
 import type { MatchResult } from "../services/MetadataMatchService";
 import type { MetadataPreviewField } from "../models/MetadataPreview";
+import type { MetadataWriteResult } from "../models/MetadataWriteResult";
 import type { SongMatchConfirmation } from "../models/SongMatchConfirmation";
 import {
   createMetadataPreview,
@@ -259,7 +260,12 @@ export default function App() {
   };
 
 
-  const refreshSongAfterMetadataWrite = async (songPath: string) => {
+  const refreshSongAfterMetadataWrite = async (
+    songPath: string,
+    result: MetadataWriteResult,
+  ) => {
+    if (!result.libraryUpdated) return;
+
     const detail = await api.getSongDetail(songPath);
     if (!detail) return;
 
