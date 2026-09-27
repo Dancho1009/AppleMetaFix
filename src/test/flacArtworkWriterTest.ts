@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   expandAppleArtworkUrl,
   inspectArtworkImage,
+  isTrustedArtworkHost,
   type DownloadedArtwork,
 } from "../services/artwork/ArtworkDownloader";
 import {
@@ -42,9 +43,17 @@ function createJpeg(width: number, height: number): Buffer {
 function run() {
   assert.equal(
     expandAppleArtworkUrl(
-      "https://example.com/cover/{w}x{h}bb.jpg",
+      "https://is1-ssl.mzstatic.com/cover/{w}x{h}bb.jpg",
     ),
-    "https://example.com/cover/1200x1200bb.jpg",
+    "https://is1-ssl.mzstatic.com/cover/1200x1200bb.jpg",
+  );
+  assert.equal(
+    isTrustedArtworkHost("is1-ssl.mzstatic.com"),
+    true,
+  );
+  assert.equal(
+    isTrustedArtworkHost("cdn.example.com"),
+    false,
   );
 
   const png = inspectArtworkImage(createPng(1200, 900));
@@ -87,8 +96,10 @@ function run() {
   });
 
   const artwork: DownloadedArtwork = {
-    sourceUrl: "https://example.com/{w}x{h}bb.jpg",
-    resolvedUrl: "https://example.com/1200x1200bb.jpg",
+    sourceUrl:
+      "https://is1-ssl.mzstatic.com/{w}x{h}bb.jpg",
+    resolvedUrl:
+      "https://is1-ssl.mzstatic.com/1200x1200bb.jpg",
     mime: "image/jpeg",
     data: Buffer.from([9, 8, 7, 6]),
     width: 1200,
