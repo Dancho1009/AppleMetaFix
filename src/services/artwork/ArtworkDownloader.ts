@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import https from "node:https";
+import * as https from "node:https";
 
 const MAX_ARTWORK_BYTES = 12 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
