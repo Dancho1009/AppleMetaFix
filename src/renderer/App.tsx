@@ -258,6 +258,41 @@ export default function App() {
     }));
   };
 
+
+  const refreshSongAfterMetadataWrite = async (songPath: string) => {
+    const detail = await api.getSongDetail(songPath);
+    if (!detail) return;
+
+    let refreshedSong: SongItem | null = null;
+
+    setSongs((current) =>
+      current.map((song) => {
+        if (song.path !== songPath) return song;
+        refreshedSong = { ...song, ...detail };
+        return refreshedSong;
+      }),
+    );
+
+    const currentSelected =
+      selectedSong?.path === songPath ? selectedSong : null;
+    const mergedSong = currentSelected
+      ? { ...currentSelected, ...detail }
+      : refreshedSong;
+
+    if (mergedSong && selectedSongId === songPath) {
+      setSelectedSong(mergedSong);
+    }
+
+    const confirmation = matchConfirmations[songPath];
+    if (mergedSong && confirmation) {
+      const preview = createMetadataPreview(mergedSong, confirmation);
+      setMetadataPreviewSelections((current) => ({
+        ...current,
+        [songPath]: getDefaultMetadataPreviewFields(preview),
+      }));
+    }
+  };
+
   const confirmCandidate = async (
     songPath: string,
     candidate: MatchResult,
@@ -395,6 +430,7 @@ export default function App() {
           onPreviewSelectedFieldsChange={(fields) =>
             updateMetadataPreviewSelection(selectedSong.path, fields)
           }
+          onMetadataWritten={refreshSongAfterMetadataWrite}
           onMatchResultChange={(result) =>
             updateMatchResult(selectedSong.path, result)
           }
