@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld("appleMetaFix", {
     ipcRenderer.invoke("song-match:get-confirmation", filePath),
   confirmSongMatch: (filePath: string, match: any) =>
     ipcRenderer.invoke("song-match:confirm", filePath, match),
+  dryRunMetadataWrite: (plan: any) =>
+    ipcRenderer.invoke("metadata-writer:dry-run", plan),
   onScanProgress: (callback: (progress: any) => void) => {
     ipcRenderer.on("scan-progress", (_event, progress) => callback(progress));
   },

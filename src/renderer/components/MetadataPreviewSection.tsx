@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type {
   MetadataPreviewField,
   MetadataPreviewItem,
 } from "../../models/MetadataPreview";
+import type { MetadataWriteDryRunResult } from "../../models/MetadataWriteValidation";
 import type { SongMatchConfirmation } from "../../models/SongMatchConfirmation";
 import {
   createMetadataChangePlan,
@@ -59,6 +60,12 @@ export default function MetadataPreviewSection({
   selectedFields: MetadataPreviewField[];
   onSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
 }) {
+  const api: any = (window as any).appleMetaFix;
+  const [dryRunning, setDryRunning] = useState(false);
+  const [dryRunResult, setDryRunResult] =
+    useState<MetadataWriteDryRunResult | null>(null);
+  const [dryRunError, setDryRunError] = useState("");
+
   const preview = useMemo(
     () => createMetadataPreview(song, confirmation),
     [song, confirmation],
@@ -71,6 +78,15 @@ export default function MetadataPreviewSection({
     () => createMetadataChangePlan(preview, selectedFields),
     [preview, selectedFields],
   );
+  const changePlanSignature = useMemo(
+    () => JSON.stringify(changePlan),
+    [changePlan],
+  );
+
+  useEffect(() => {
+    setDryRunResult(null);
+    setDryRunError("");
+  }, [changePlanSignature]);
 
   const toggleField = (field: MetadataPreviewField) => {
     onSelectedFieldsChange(
@@ -86,6 +102,28 @@ export default function MetadataPreviewSection({
         .filter((item) => item.selectable && item.changed)
         .map((item) => item.field),
     );
+  };
+
+  const runDryRun = async () => {
+    if (changePlan.changes.length === 0) return;
+
+    setDryRunning(true);
+    setDryRunError("");
+
+    try {
+      const result = (await api.dryRunMetadataWrite(
+        changePlan,
+      )) as MetadataWriteDryRunResult;
+      setDryRunResult(result);
+    } catch (error) {
+      console.error("[WRITER:UI] Dry Run失败", error);
+      setDryRunResult(null);
+      setDryRunError(
+        error instanceof Error ? error.message : "Dry Run执行失败",
+      );
+    } finally {
+      setDryRunning(false);
+    }
   };
 
   return (
@@ -118,7 +156,77 @@ export default function MetadataPreviewSection({
         >
           清空选择
         </button>
+        <button
+          onClick={runDryRun}
+          disabled={dryRunning || changePlan.changes.length === 0}
+        >
+          {dryRunning ? "校验中..." : "验证写入计划"}
+        </button>
       </div>
+
+      {dryRunError && (
+        <div className="metadata-dry-run metadata-dry-run-error">
+          <strong>Dry Run执行失败</strong>
+          <p>{dryRunError}</p>
+        </div>
+      )}
+
+      {dryRunResult && (
+        <div
+          className={[
+            "metadata-dry-run",
+            dryRunResult.ok
+              ? "metadata-dry-run-success"
+              : "metadata-dry-run-error",
+          ].join(" ")}
+        >
+          <div className="metadata-dry-run-heading">
+            <strong>
+              {dryRunResult.ok
+                ? "✓ Dry Run通过"
+                : "✕ Dry Run未通过"}
+            </strong>
+            <span>
+              {dryRunResult.format.toUpperCase()} ·{" "}
+              {dryRunResult.changeCount} 项变更
+            </span>
+          </div>
+
+          <div className="metadata-dry-run-checks">
+            {dryRunResult.checks.map((check) => (
+              <div
+                className={
+                  check.ok
+                    ? "metadata-dry-run-check-ok"
+                    : "metadata-dry-run-check-fail"
+                }
+                key={check.key}
+              >
+                <span>{check.ok ? "✓" : "✕"}</span>
+                <div>
+                  <strong>{check.label}</strong>
+                  <p>{check.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {dryRunResult.issues.length > 0 && (
+            <div className="metadata-dry-run-issues">
+              {dryRunResult.issues.map((issue, index) => (
+                <p key={`${issue.code}-${issue.field || index}`}>
+                  {issue.field ? `[${issue.field}] ` : ""}
+                  {issue.message}
+                </p>
+              ))}
+            </div>
+          )}
+
+          <p className="metadata-dry-run-note">
+            Dry Run仅执行安全校验，没有修改音频文件。
+          </p>
+        </div>
+      )}
 
       <div className="metadata-preview-list">
         {preview.items.map((item) => {
