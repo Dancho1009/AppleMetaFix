@@ -31,6 +31,7 @@ function run() {
       "ALBUM=保留专辑",
       "GENRE=旧流派",
       "GENRE=旧流派2",
+      "YEAR=2020",
       "REPLAYGAIN_TRACK_GAIN=-3.25 dB",
       "CUSTOM_TAG=保留值",
     ],
@@ -61,6 +62,11 @@ function run() {
   assert.equal(getVorbisTextValue(vorbis.data, "ARTIST"), "新艺术家");
   assert.equal(getVorbisTextValue(vorbis.data, "ALBUM"), "保留专辑");
   assert.equal(getVorbisTextValue(vorbis.data, "DATE"), "2026");
+  assert.equal(
+    getVorbisTextValue(vorbis.data, "YEAR"),
+    undefined,
+    "写入年份后不应残留旧YEAR标签",
+  );
   assert.equal(getVorbisTextValue(vorbis.data, "GENRE"), "J-Pop; アニメ");
   assert.equal(
     getVorbisTextValue(vorbis.data, "COMPOSER"),
