@@ -140,6 +140,32 @@ export function registerIPCHandlers() {
   );
 
   ipcMain.handle(
+    "metadata-writer:write-flac",
+    async (_event, plan: MetadataChangePlan) => {
+      try {
+        debugLog("WRITER", "开始写入FLAC Metadata", {
+          filePath: plan?.filePath,
+          changeCount: Array.isArray(plan?.changes)
+            ? plan.changes.length
+            : 0,
+        });
+
+        const result = await metadataWriterService.writeFlac(plan);
+
+        debugLog("WRITER", "FLAC Metadata写入完成", {
+          filePath: result.filePath,
+          writtenFields: result.writtenFields,
+        });
+
+        return result;
+      } catch (error) {
+        debugError("WRITER", "FLAC Metadata写入失败", error);
+        throw error;
+      }
+    },
+  );
+
+  ipcMain.handle(
     "metadata-writer:write-flac-text",
     async (_event, plan: MetadataChangePlan) => {
       try {
