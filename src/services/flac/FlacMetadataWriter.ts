@@ -1,13 +1,20 @@
 import { randomUUID } from "node:crypto";
 import {
   chmod,
+  copyFile,
+  link,
   open,
   rename,
   stat,
   unlink,
   writeFile,
 } from "node:fs/promises";
-import { createReadStream, createWriteStream, existsSync } from "node:fs";
+import {
+  constants as fsConstants,
+  createReadStream,
+  createWriteStream,
+  existsSync,
+} from "node:fs";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { parseFile } from "music-metadata";
@@ -211,6 +218,18 @@ async function safeUnlink(filePath: string) {
   }
 }
 
+async function createRollbackSnapshot(
+  filePath: string,
+  rollbackPath: string,
+): Promise<void> {
+  try {
+    await link(filePath, rollbackPath);
+    return;
+  } catch {
+    await copyFile(filePath, rollbackPath, fsConstants.COPYFILE_EXCL);
+  }
+}
+
 async function restoreOriginal(
   filePath: string,
   rollbackPath: string,
@@ -248,7 +267,8 @@ export async function writeFlacTextMetadata(
     `.${base}.applemetafix-${token}.rollback`,
   );
 
-  let originalMoved = false;
+  let rollbackCreated = false;
+  let writeCompleted = false;
 
   try {
     await writeFile(tempPath, prefix, { flag: "wx" });
@@ -272,8 +292,8 @@ export async function writeFlacTextMetadata(
     verifyTextChanges(textChanges, tempMetadata);
     verifyAudioProperties(originalMetadata, tempMetadata);
 
-    await rename(filePath, rollbackPath);
-    originalMoved = true;
+    await createRollbackSnapshot(filePath, rollbackPath);
+    rollbackCreated = true;
 
     try {
       await rename(tempPath, filePath);
@@ -283,19 +303,22 @@ export async function writeFlacTextMetadata(
       verifyAudioProperties(originalMetadata, finalMetadata);
 
       await unlink(rollbackPath);
-      originalMoved = false;
+      rollbackCreated = false;
+      writeCompleted = true;
 
       return writtenMetadata(finalMetadata);
     } catch (error) {
-      try {
-        await restoreOriginal(filePath, rollbackPath);
-        originalMoved = false;
-      } catch (restoreError) {
-        throw new Error(
-          `FLAC替换失败且自动回滚失败。原文件回滚副本保留在：${rollbackPath}。原始错误：${String(
-            error,
-          )}；回滚错误：${String(restoreError)}`,
-        );
+      if (rollbackCreated) {
+        try {
+          await restoreOriginal(filePath, rollbackPath);
+          rollbackCreated = false;
+        } catch (restoreError) {
+          throw new Error(
+            `FLAC替换失败且自动回滚失败。原文件回滚副本保留在：${rollbackPath}。原始错误：${String(
+              error,
+            )}；回滚错误：${String(restoreError)}`,
+          );
+        }
       }
 
       throw error;
@@ -303,7 +326,7 @@ export async function writeFlacTextMetadata(
   } finally {
     await safeUnlink(tempPath);
 
-    if (!originalMoved) {
+    if (writeCompleted || !rollbackCreated) {
       await safeUnlink(rollbackPath);
     }
   }
