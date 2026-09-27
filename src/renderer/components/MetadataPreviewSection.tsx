@@ -4,6 +4,7 @@ import type {
   MetadataPreviewItem,
 } from "../../models/MetadataPreview";
 import type { MetadataWriteDryRunResult } from "../../models/MetadataWriteValidation";
+import type { MetadataWriteResult } from "../../models/MetadataWriteResult";
 import type { SongMatchConfirmation } from "../../models/SongMatchConfirmation";
 import {
   createMetadataChangePlan,
@@ -54,17 +55,23 @@ export default function MetadataPreviewSection({
   confirmation,
   selectedFields,
   onSelectedFieldsChange,
+  onWriteComplete,
 }: {
   song: LocalMetadataPreviewSource;
   confirmation: SongMatchConfirmation;
   selectedFields: MetadataPreviewField[];
   onSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
+  onWriteComplete: () => Promise<void>;
 }) {
   const api: any = (window as any).appleMetaFix;
   const [dryRunning, setDryRunning] = useState(false);
   const [dryRunResult, setDryRunResult] =
     useState<MetadataWriteDryRunResult | null>(null);
   const [dryRunError, setDryRunError] = useState("");
+  const [writeRunning, setWriteRunning] = useState(false);
+  const [writeResult, setWriteResult] =
+    useState<MetadataWriteResult | null>(null);
+  const [writeError, setWriteError] = useState("");
 
   const preview = useMemo(
     () => createMetadataPreview(song, confirmation),
@@ -82,13 +89,30 @@ export default function MetadataPreviewSection({
     () => JSON.stringify(changePlan),
     [changePlan],
   );
+  const flacTextWritable = useMemo(
+    () =>
+      changePlan.changes.length > 0 &&
+      changePlan.changes.every(
+        (change) =>
+          change.kind === "text" &&
+          change.field !== "artwork",
+      ),
+    [changePlan],
+  );
 
   useEffect(() => {
     setDryRunResult(null);
     setDryRunError("");
+    setWriteError("");
   }, [changePlanSignature]);
 
+  const invalidateWriteResult = () => {
+    setWriteResult(null);
+    setWriteError("");
+  };
+
   const toggleField = (field: MetadataPreviewField) => {
+    invalidateWriteResult();
     onSelectedFieldsChange(
       selectedFields.includes(field)
         ? selectedFields.filter((item) => item !== field)
@@ -97,6 +121,7 @@ export default function MetadataPreviewSection({
   };
 
   const selectChanged = () => {
+    invalidateWriteResult();
     onSelectedFieldsChange(
       preview.items
         .filter((item) => item.selectable && item.changed)
@@ -109,6 +134,8 @@ export default function MetadataPreviewSection({
 
     setDryRunning(true);
     setDryRunError("");
+    setWriteResult(null);
+    setWriteError("");
 
     try {
       const result = (await api.dryRunMetadataWrite(
@@ -126,16 +153,52 @@ export default function MetadataPreviewSection({
     }
   };
 
+  const runWrite = async () => {
+    if (
+      !dryRunResult?.ok ||
+      dryRunResult.format !== "flac" ||
+      !flacTextWritable ||
+      writeRunning
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "即将修改原FLAC文件的文本Metadata。写入前会再次执行安全校验，失败会自动回滚。是否继续？",
+    );
+    if (!confirmed) return;
+
+    setWriteRunning(true);
+    setWriteError("");
+
+    try {
+      const result = (await api.writeFlacTextMetadata(
+        changePlan,
+      )) as MetadataWriteResult;
+
+      setWriteResult(result);
+      setDryRunResult(null);
+      await onWriteComplete();
+    } catch (error) {
+      console.error("[WRITER:UI] FLAC写入失败", error);
+      setWriteError(
+        error instanceof Error ? error.message : "FLAC写入失败",
+      );
+    } finally {
+      setWriteRunning(false);
+    }
+  };
+
   return (
     <section className="detail-section metadata-preview-section">
       <div className="metadata-preview-heading">
         <div>
           <h3>Metadata Preview</h3>
           <p>
-            基于已确认的 Apple Music 版本生成变更计划；当前仅预览，不会写入文件。
+            写入前必须先通过 Dry Run；当前实际写入仅支持 FLAC 文本字段，封面暂不写入。
           </p>
         </div>
-        <span className="metadata-preview-status">预览模式</span>
+        <span className="metadata-preview-status">FLAC Writer</span>
       </div>
 
       <div className="metadata-preview-summary">
@@ -151,7 +214,10 @@ export default function MetadataPreviewSection({
         </button>
         <button
           className="secondary-button"
-          onClick={() => onSelectedFieldsChange([])}
+          onClick={() => {
+            invalidateWriteResult();
+            onSelectedFieldsChange([]);
+          }}
           disabled={selectedFields.length === 0}
         >
           清空选择
@@ -224,6 +290,47 @@ export default function MetadataPreviewSection({
 
           <p className="metadata-dry-run-note">
             Dry Run仅执行安全校验，没有修改音频文件。
+          </p>
+
+          {dryRunResult.ok && dryRunResult.format === "flac" && (
+            flacTextWritable ? (
+              <button
+                className="metadata-write-button"
+                onClick={runWrite}
+                disabled={writeRunning}
+              >
+                {writeRunning
+                  ? "写入并验证中..."
+                  : "写入 FLAC Metadata"}
+              </button>
+            ) : (
+              <p className="metadata-dry-run-note">
+                当前首版 Writer 只支持文本字段。请取消封面选择后重新执行 Dry Run。
+              </p>
+            )
+          )}
+        </div>
+      )}
+
+      {writeError && (
+        <div className="metadata-dry-run metadata-dry-run-error">
+          <strong>FLAC写入失败</strong>
+          <p>{writeError}</p>
+        </div>
+      )}
+
+      {writeResult && (
+        <div className="metadata-dry-run metadata-dry-run-success">
+          <div className="metadata-dry-run-heading">
+            <strong>✓ FLAC Metadata写入完成</strong>
+            <span>{writeResult.changeCount} 项文本变更</span>
+          </div>
+          <p>
+            已写入并重新读取验证：
+            {writeResult.writtenFields.join("、")}
+          </p>
+          <p className="metadata-dry-run-note">
+            原文件仅在临时副本验证通过后才被替换；写入失败会自动回滚。
           </p>
         </div>
       )}
