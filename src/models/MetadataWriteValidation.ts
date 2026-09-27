@@ -7,6 +7,7 @@ export interface MetadataWriteCheck {
     | "plan"
     | "library"
     | "confirmation"
+    | "target-metadata"
     | "file-exists"
     | "regular-file"
     | "readable"

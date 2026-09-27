@@ -4,10 +4,11 @@ import {
   existsSync,
   lstatSync,
 } from "node:fs";
+import path from "node:path";
 import { parseFile } from "music-metadata";
 import {
   getSongByPath,
-  updateSongTextMetadata,
+  upsertSong,
 } from "../database/songRepository";
 import type {
   MetadataChange,
@@ -19,12 +20,14 @@ import type {
   MetadataWriteValidationIssue,
 } from "../models/MetadataWriteValidation";
 import type { MetadataWriteResult } from "../models/MetadataWriteResult";
+import { MetadataScanner } from "../scanner/MetadataScanner";
 import {
   detectMetadataWriteFormat,
   validateMetadataChangePlanStructure,
 } from "./MetadataWritePlanValidator";
 import { songMatchConfirmationService } from "./SongMatchConfirmationService";
-import { writeFlacTextMetadata } from "./flac/FlacMetadataWriter";
+import { downloadArtwork } from "./artwork/ArtworkDownloader";
+import { writeFlacMetadata } from "./flac/FlacMetadataWriter";
 
 function addCheck(
   checks: MetadataWriteCheck[],
@@ -40,17 +43,80 @@ function addError(
   issues: MetadataWriteValidationIssue[],
   code: string,
   message: string,
+  field?: MetadataChange["field"],
 ) {
   issues.push({
     code,
     severity: "error",
     message,
+    field,
   });
 }
 
 function text(value: unknown): string {
   if (value === undefined || value === null) return "";
   return String(value).trim();
+}
+
+function expectedConfirmedValue(
+  field: MetadataChange["field"],
+  confirmation: ReturnType<
+    typeof songMatchConfirmationService.get
+  >,
+): string {
+  const track = confirmation?.track;
+  if (!track) return "";
+
+  switch (field) {
+    case "title":
+      return text(track.title);
+    case "artist":
+      return text(track.artist);
+    case "album":
+      return text(track.album);
+    case "year":
+      return track.releaseDate?.match(/^(\d{4})/)?.[1] ?? "";
+    case "genre":
+      return track.genre?.filter(Boolean).join("; ") ?? "";
+    case "composer":
+      return text(track.composer);
+    case "artwork":
+      return text(track.artwork);
+  }
+
+  return "";
+}
+
+function sourceArtworkMatches(
+  before: string,
+  metadata: Awaited<ReturnType<typeof parseFile>>,
+): boolean {
+  const picture = metadata.common.picture?.[0];
+  const expected = text(before);
+
+  if (!expected) {
+    return !picture?.data;
+  }
+
+  if (!picture?.data) {
+    return false;
+  }
+
+  const dataUrl = expected.match(
+    /^data:([^;]+);base64,(.+)$/i,
+  );
+
+  if (!dataUrl) {
+    return true;
+  }
+
+  try {
+    return Buffer.from(picture.data).equals(
+      Buffer.from(dataUrl[2], "base64"),
+    );
+  } catch {
+    return false;
+  }
 }
 
 function currentMetadataValue(
@@ -78,6 +144,7 @@ function currentMetadataValue(
 }
 
 export class MetadataWriterService {
+  private metadataScanner = new MetadataScanner();
   async dryRun(
     plan: MetadataChangePlan,
   ): Promise<MetadataWriteDryRunResult> {
@@ -149,6 +216,44 @@ export class MetadataWriterService {
         issues,
         "confirmation-mismatch",
         "写入前必须确认Apple Music版本，且写入计划必须与当前确认结果一致",
+      );
+    }
+
+    const targetMismatches =
+      confirmationMatches && confirmation
+        ? changes.filter(
+            (change) =>
+              text(change.after) !==
+              expectedConfirmedValue(
+                change.field,
+                confirmation,
+              ),
+          )
+        : [];
+
+    const targetMetadataOk =
+      confirmationMatches && targetMismatches.length === 0;
+
+    addCheck(
+      checks,
+      "target-metadata",
+      "目标Metadata",
+      targetMetadataOk,
+      targetMetadataOk
+        ? "所有目标值均来自当前已确认Apple Music版本"
+        : targetMismatches.length > 0
+          ? `以下字段与确认版本不一致：${targetMismatches
+              .map((change) => change.field)
+              .join("、")}`
+          : "无法验证目标Metadata来源",
+    );
+
+    for (const change of targetMismatches) {
+      addError(
+        issues,
+        "target-metadata-mismatch",
+        `字段 ${change.field} 的目标值与当前已确认Apple Music版本不一致`,
+        change.field,
       );
     }
 
@@ -273,18 +378,34 @@ export class MetadataWriterService {
     const textChanges = changes.filter(
       (change) => change?.field !== "artwork",
     );
+    const artworkChange = changes.find(
+      (change) => change?.field === "artwork",
+    );
+
     const staleFields =
       parsedMetadata === null
         ? []
-        : textChanges
-            .filter((change) => {
-              const current = currentMetadataValue(
-                change.field,
-                parsedMetadata.common,
-              );
-              return current !== null && current !== text(change.before);
-            })
-            .map((change) => change.field);
+        : [
+            ...textChanges
+              .filter((change) => {
+                const current = currentMetadataValue(
+                  change.field,
+                  parsedMetadata.common,
+                );
+                return (
+                  current !== null &&
+                  current !== text(change.before)
+                );
+              })
+              .map((change) => change.field),
+            ...(artworkChange &&
+            !sourceArtworkMatches(
+              artworkChange.before,
+              parsedMetadata,
+            )
+              ? (["artwork"] as MetadataChange["field"][])
+              : []),
+          ];
 
     const sourceMetadataOk =
       parsedMetadata !== null && staleFields.length === 0;
@@ -340,7 +461,37 @@ export class MetadataWriterService {
     };
   }
 
-  async writeFlacText(
+  private async syncSongFromFile(
+    filePath: string,
+  ): Promise<void> {
+    const metadata = await this.metadataScanner.scanFile(
+      filePath,
+    );
+
+    upsertSong({
+      path: metadata.path,
+      filename: path.basename(metadata.path),
+      title: metadata.title,
+      artist: metadata.artist,
+      album: metadata.album,
+      album_artist: metadata.albumArtist,
+      composer: metadata.composer,
+      genre: metadata.genre,
+      year: metadata.year,
+      duration: metadata.duration,
+      format: metadata.format,
+      bitrate: metadata.bitrate,
+      sample_rate: metadata.sampleRate,
+      lyrics_type: metadata.lyrics?.type,
+      lyrics_path: metadata.lyricsPath,
+      embedded_lyrics:
+        metadata.lyrics?.embedded?.content ?? undefined,
+      cover_path: metadata.coverPath,
+      cover_exist: Boolean(metadata.coverPath),
+    });
+  }
+
+  async writeFlac(
     plan: MetadataChangePlan,
   ): Promise<MetadataWriteResult> {
     const validation = await this.dryRun(plan);
@@ -350,40 +501,41 @@ export class MetadataWriterService {
         .filter((issue) => issue.severity === "error")
         .map((issue) => issue.message)
         .join("；");
-      throw new Error(`写入前安全校验未通过：${messages}`);
+      throw new Error(
+        "写入前安全校验未通过：" + messages,
+      );
     }
 
     if (validation.format !== "flac") {
       throw new Error("当前实际写入阶段仅支持FLAC");
     }
 
-    if (
-      plan.changes.some(
-        (change) =>
-          change.kind !== "text" ||
-          change.field === "artwork",
-      )
-    ) {
-      throw new Error(
-        "当前FLAC Writer仅支持文本字段，封面将在后续阶段实现",
-      );
-    }
+    const artworkChange = plan.changes.find(
+      (change) => change.field === "artwork",
+    );
+    const artwork = artworkChange
+      ? await downloadArtwork(artworkChange.after)
+      : undefined;
 
-    const metadata = await writeFlacTextMetadata(
+    const metadata = await writeFlacMetadata(
       validation.filePath,
       plan.changes,
+      artwork,
     );
 
     let libraryUpdated = true;
     let warning: string | undefined;
 
     try {
-      updateSongTextMetadata(validation.filePath, metadata);
+      await this.syncSongFromFile(validation.filePath);
     } catch (error) {
       libraryUpdated = false;
       warning =
         "FLAC文件已写入并验证成功，但歌曲库Metadata刷新失败，请重新扫描音乐库";
-      console.error("[WRITER] 更新歌曲库Metadata失败", error);
+      console.error(
+        "[WRITER] 更新歌曲库Metadata失败",
+        error,
+      );
     }
 
     return {
@@ -392,12 +544,33 @@ export class MetadataWriterService {
       filePath: validation.filePath,
       format: "flac",
       changeCount: plan.changes.length,
-      writtenFields: plan.changes.map((change) => change.field),
+      writtenFields: plan.changes.map(
+        (change) => change.field,
+      ),
       metadata,
+      coverDataUrl: artwork
+        ? `data:${artwork.mime};base64,${artwork.data.toString("base64")}`
+        : undefined,
       libraryUpdated,
       warning,
       verifiedAt: Date.now(),
     };
+  }
+
+  async writeFlacText(
+    plan: MetadataChangePlan,
+  ): Promise<MetadataWriteResult> {
+    if (
+      plan.changes.some(
+        (change) =>
+          change.field === "artwork" ||
+          change.kind !== "text",
+      )
+    ) {
+      throw new Error("FLAC文本Writer不接受封面变更");
+    }
+
+    return this.writeFlac(plan);
   }
 }
 

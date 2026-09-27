@@ -264,22 +264,37 @@ export default function App() {
     songPath: string,
     result: MetadataWriteResult,
   ) => {
-    if (!result.libraryUpdated) return;
-
-    const detail = await api.getSongDetail(songPath);
-    if (!detail) return;
+    const detail = result.libraryUpdated
+      ? await api.getSongDetail(songPath)
+      : null;
 
     const existingSong =
       songs.find((song) => song.path === songPath) ??
       (selectedSong?.path === songPath ? selectedSong : null);
+    const artworkWritten =
+      result.writtenFields.includes("artwork");
+
+    const writePatch: Partial<SongItem> = {
+      ...result.metadata,
+      ...(detail ?? {}),
+      ...(artworkWritten
+        ? { coverDataUrl: result.coverDataUrl }
+        : {}),
+    };
+
     const mergedSong: SongItem = {
       ...(existingSong ?? { path: songPath }),
-      ...detail,
+      ...writePatch,
     };
 
     setSongs((current) =>
       current.map((song) =>
-        song.path === songPath ? { ...song, ...detail } : song,
+        song.path === songPath
+          ? {
+              ...song,
+              ...writePatch,
+            }
+          : song,
       ),
     );
 

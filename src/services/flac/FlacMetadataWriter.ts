@@ -20,6 +20,8 @@ import { pipeline } from "node:stream/promises";
 import { parseFile } from "music-metadata";
 import type { MetadataChange } from "../../models/MetadataChangePlan";
 import type { FlacWrittenMetadata } from "../../models/MetadataWriteResult";
+import type { DownloadedArtwork } from "../artwork/ArtworkDownloader";
+import { applyFrontCoverPicture } from "./FlacPictureBlock";
 import {
   applyVorbisTextChanges,
   type FlacMetadataBlock,
@@ -178,6 +180,41 @@ function verifySourceValues(
   }
 }
 
+function verifySourceArtwork(
+  change: MetadataChange,
+  metadata: Awaited<ReturnType<typeof parseFile>>,
+) {
+  const current = metadata.common.picture?.[0];
+  const before = text(change.before);
+
+  if (!before && current?.data) {
+    throw new Error(
+      "FLAC源封面在Preview生成后发生变化，请重新生成Preview",
+    );
+  }
+
+  if (before && !current?.data) {
+    throw new Error(
+      "FLAC源封面在Preview生成后发生变化，请重新生成Preview",
+    );
+  }
+
+  const dataUrl = before.match(
+    /^data:([^;]+);base64,(.+)$/i,
+  );
+
+  if (dataUrl && current?.data) {
+    const expected = Buffer.from(dataUrl[2], "base64");
+    const actual = Buffer.from(current.data);
+
+    if (!actual.equals(expected)) {
+      throw new Error(
+        "FLAC源封面在Preview生成后发生变化，请重新生成Preview",
+      );
+    }
+  }
+}
+
 function verifyTextChanges(
   changes: MetadataChange[],
   metadata: Awaited<ReturnType<typeof parseFile>>,
@@ -190,6 +227,22 @@ function verifyTextChanges(
   if (mismatches.length > 0) {
     throw new Error(
       `FLAC写后验证失败，字段未按计划写入：${mismatches.join("、")}`,
+    );
+  }
+}
+
+function verifyArtwork(
+  artwork: DownloadedArtwork,
+  metadata: Awaited<ReturnType<typeof parseFile>>,
+) {
+  const pictures = metadata.common.picture ?? [];
+  const matched = pictures.some((picture) =>
+    Buffer.from(picture.data).equals(artwork.data),
+  );
+
+  if (!matched) {
+    throw new Error(
+      "FLAC写后封面验证失败，PICTURE Block与下载封面不一致",
     );
   }
 }
@@ -258,24 +311,56 @@ async function restoreOriginal(
   await rename(rollbackPath, filePath);
 }
 
-export async function writeFlacTextMetadata(
+export async function writeFlacMetadata(
   filePath: string,
   changes: MetadataChange[],
+  artwork?: DownloadedArtwork,
 ): Promise<FlacWrittenMetadata> {
   const textChanges = changes.filter(
     (change) => change.kind === "text" && change.field !== "artwork",
   );
+  const artworkChange = changes.find(
+    (change) =>
+      change.field === "artwork" &&
+      change.kind === "artwork",
+  );
 
-  if (textChanges.length !== changes.length || textChanges.length === 0) {
-    throw new Error("FLAC首版Writer仅支持文本Metadata字段，不支持封面写入");
+  const supportedCount =
+    textChanges.length + (artworkChange ? 1 : 0);
+
+  if (supportedCount !== changes.length || supportedCount === 0) {
+    throw new Error("FLAC Writer包含不支持的Metadata变更");
+  }
+
+  if (Boolean(artworkChange) !== Boolean(artwork)) {
+    throw new Error("FLAC封面变更与下载图片状态不一致");
   }
 
   const sourceStatBefore = await stat(filePath);
   const originalMetadata = await parseFile(filePath);
   verifySourceValues(textChanges, originalMetadata);
 
+  if (artworkChange) {
+    verifySourceArtwork(artworkChange, originalMetadata);
+  }
+
   const structure = await readFlacStructure(filePath);
-  const updatedBlocks = applyVorbisTextChanges(structure.blocks, textChanges);
+  let updatedBlocks = structure.blocks;
+
+  if (textChanges.length > 0) {
+    updatedBlocks = applyVorbisTextChanges(
+      updatedBlocks,
+      textChanges,
+    );
+  }
+
+  if (artwork) {
+    updatedBlocks = applyFrontCoverPicture(
+      updatedBlocks,
+      artwork,
+    );
+  }
+
   const prefix = serializeMetadataPrefix(updatedBlocks);
 
   const directory = path.dirname(filePath);
@@ -322,7 +407,12 @@ export async function writeFlacTextMetadata(
     }
 
     const tempMetadata = await parseFile(tempPath);
-    verifyTextChanges(textChanges, tempMetadata);
+    if (textChanges.length > 0) {
+      verifyTextChanges(textChanges, tempMetadata);
+    }
+    if (artwork) {
+      verifyArtwork(artwork, tempMetadata);
+    }
     verifyAudioProperties(originalMetadata, tempMetadata);
 
     await createRollbackSnapshot(filePath, rollbackPath);
@@ -332,7 +422,12 @@ export async function writeFlacTextMetadata(
       await rename(tempPath, filePath);
 
       const finalMetadata = await parseFile(filePath);
-      verifyTextChanges(textChanges, finalMetadata);
+      if (textChanges.length > 0) {
+        verifyTextChanges(textChanges, finalMetadata);
+      }
+      if (artwork) {
+        verifyArtwork(artwork, finalMetadata);
+      }
       verifyAudioProperties(originalMetadata, finalMetadata);
 
       await unlink(rollbackPath);
@@ -363,4 +458,22 @@ export async function writeFlacTextMetadata(
       await safeUnlink(rollbackPath);
     }
   }
+}
+
+
+export async function writeFlacTextMetadata(
+  filePath: string,
+  changes: MetadataChange[],
+): Promise<FlacWrittenMetadata> {
+  if (
+    changes.some(
+      (change) =>
+        change.field === "artwork" ||
+        change.kind !== "text",
+    )
+  ) {
+    throw new Error("FLAC文本Writer不接受封面变更");
+  }
+
+  return writeFlacMetadata(filePath, changes);
 }

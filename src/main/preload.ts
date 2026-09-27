@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld("appleMetaFix", {
     ipcRenderer.invoke("song-match:confirm", filePath, match),
   dryRunMetadataWrite: (plan: any) =>
     ipcRenderer.invoke("metadata-writer:dry-run", plan),
+  writeFlacMetadata: (plan: any) =>
+    ipcRenderer.invoke("metadata-writer:write-flac", plan),
   writeFlacTextMetadata: (plan: any) =>
     ipcRenderer.invoke("metadata-writer:write-flac-text", plan),
   onScanProgress: (callback: (progress: any) => void) => {
