@@ -139,6 +139,32 @@ export function registerIPCHandlers() {
     },
   );
 
+  ipcMain.handle(
+    "metadata-writer:write-flac-text",
+    async (_event, plan: MetadataChangePlan) => {
+      try {
+        debugLog("WRITER", "开始写入FLAC文本Metadata", {
+          filePath: plan?.filePath,
+          changeCount: Array.isArray(plan?.changes)
+            ? plan.changes.length
+            : 0,
+        });
+
+        const result = await metadataWriterService.writeFlacText(plan);
+
+        debugLog("WRITER", "FLAC文本Metadata写入完成", {
+          filePath: result.filePath,
+          writtenFields: result.writtenFields,
+        });
+
+        return result;
+      } catch (error) {
+        debugError("WRITER", "FLAC文本Metadata写入失败", error);
+        throw error;
+      }
+    },
+  );
+
   ipcMain.handle("open-file-location", async (_event, filePath: string) => {
     if (!filePath) return false;
     const opened = await openWindowsPath(path.dirname(filePath));

@@ -5,7 +5,10 @@ import {
   lstatSync,
 } from "node:fs";
 import { parseFile } from "music-metadata";
-import { getSongByPath } from "../database/songRepository";
+import {
+  getSongByPath,
+  updateSongTextMetadata,
+} from "../database/songRepository";
 import type {
   MetadataChange,
   MetadataChangePlan,
@@ -15,11 +18,13 @@ import type {
   MetadataWriteDryRunResult,
   MetadataWriteValidationIssue,
 } from "../models/MetadataWriteValidation";
+import type { MetadataWriteResult } from "../models/MetadataWriteResult";
 import {
   detectMetadataWriteFormat,
   validateMetadataChangePlanStructure,
 } from "./MetadataWritePlanValidator";
 import { songMatchConfirmationService } from "./SongMatchConfirmationService";
+import { writeFlacTextMetadata } from "./flac/FlacMetadataWriter";
 
 function addCheck(
   checks: MetadataWriteCheck[],
@@ -332,6 +337,66 @@ export class MetadataWriterService {
       checks,
       issues,
       validatedAt: Date.now(),
+    };
+  }
+
+  async writeFlacText(
+    plan: MetadataChangePlan,
+  ): Promise<MetadataWriteResult> {
+    const validation = await this.dryRun(plan);
+
+    if (!validation.ok) {
+      const messages = validation.issues
+        .filter((issue) => issue.severity === "error")
+        .map((issue) => issue.message)
+        .join("；");
+      throw new Error(`写入前安全校验未通过：${messages}`);
+    }
+
+    if (validation.format !== "flac") {
+      throw new Error("当前实际写入阶段仅支持FLAC");
+    }
+
+    if (
+      plan.changes.some(
+        (change) =>
+          change.kind !== "text" ||
+          change.field === "artwork",
+      )
+    ) {
+      throw new Error(
+        "当前FLAC Writer仅支持文本字段，封面将在后续阶段实现",
+      );
+    }
+
+    const metadata = await writeFlacTextMetadata(
+      validation.filePath,
+      plan.changes,
+    );
+
+    let libraryUpdated = true;
+    let warning: string | undefined;
+
+    try {
+      updateSongTextMetadata(validation.filePath, metadata);
+    } catch (error) {
+      libraryUpdated = false;
+      warning =
+        "FLAC文件已写入并验证成功，但歌曲库Metadata刷新失败，请重新扫描音乐库";
+      console.error("[WRITER] 更新歌曲库Metadata失败", error);
+    }
+
+    return {
+      mode: "write",
+      ok: true,
+      filePath: validation.filePath,
+      format: "flac",
+      changeCount: plan.changes.length,
+      writtenFields: plan.changes.map((change) => change.field),
+      metadata,
+      libraryUpdated,
+      warning,
+      verifiedAt: Date.now(),
     };
   }
 }

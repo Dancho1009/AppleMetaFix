@@ -136,3 +136,44 @@ export function getSongByPath(filePath: string): SongDetail | undefined {
 
   return mapSongDetail(row);
 }
+
+
+export interface SongTextMetadataUpdate {
+  title?: string;
+  artist?: string;
+  album?: string;
+  composer?: string;
+  genre?: string;
+  year?: number;
+}
+
+export function updateSongTextMetadata(
+  filePath: string,
+  metadata: SongTextMetadataUpdate,
+) {
+  const db = getDatabase();
+
+  db.prepare(`
+    UPDATE songs
+    SET
+      title = @title,
+      artist = @artist,
+      album = @album,
+      composer = @composer,
+      genre = @genre,
+      year = @year,
+      last_scan_time = @last_scan_time
+    WHERE path = @path
+  `).run({
+    path: filePath,
+    title: metadata.title ?? null,
+    artist: metadata.artist ?? null,
+    album: metadata.album ?? null,
+    composer: metadata.composer ?? null,
+    genre: metadata.genre ?? null,
+    year: metadata.year ?? null,
+    last_scan_time: Date.now(),
+  });
+
+  return getSongByPath(filePath);
+}

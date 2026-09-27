@@ -11,6 +11,7 @@ import {
 import type { MatchPipelineResult } from "../services/MetadataMatchPipeline";
 import type { MatchResult } from "../services/MetadataMatchService";
 import type { MetadataPreviewField } from "../models/MetadataPreview";
+import type { MetadataWriteResult } from "../models/MetadataWriteResult";
 import type { SongMatchConfirmation } from "../models/SongMatchConfirmation";
 import {
   createMetadataPreview,
@@ -258,6 +259,42 @@ export default function App() {
     }));
   };
 
+
+  const refreshSongAfterMetadataWrite = async (
+    songPath: string,
+    result: MetadataWriteResult,
+  ) => {
+    if (!result.libraryUpdated) return;
+
+    const detail = await api.getSongDetail(songPath);
+    if (!detail) return;
+
+    const existingSong =
+      songs.find((song) => song.path === songPath) ??
+      (selectedSong?.path === songPath ? selectedSong : null);
+    const mergedSong: SongItem = {
+      ...(existingSong ?? { path: songPath }),
+      ...detail,
+    };
+
+    setSongs((current) =>
+      current.map((song) =>
+        song.path === songPath ? { ...song, ...detail } : song,
+      ),
+    );
+
+    if (selectedSongId === songPath) {
+      setSelectedSong(mergedSong);
+    }
+
+    if (matchConfirmations[songPath]) {
+      setMetadataPreviewSelections((current) => ({
+        ...current,
+        [songPath]: [],
+      }));
+    }
+  };
+
   const confirmCandidate = async (
     songPath: string,
     candidate: MatchResult,
@@ -395,6 +432,7 @@ export default function App() {
           onPreviewSelectedFieldsChange={(fields) =>
             updateMetadataPreviewSelection(selectedSong.path, fields)
           }
+          onMetadataWritten={refreshSongAfterMetadataWrite}
           onMatchResultChange={(result) =>
             updateMatchResult(selectedSong.path, result)
           }
