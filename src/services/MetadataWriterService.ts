@@ -4,10 +4,11 @@ import {
   existsSync,
   lstatSync,
 } from "node:fs";
+import path from "node:path";
 import { parseFile } from "music-metadata";
 import {
   getSongByPath,
-  updateSongTextMetadata,
+  upsertSong,
 } from "../database/songRepository";
 import type {
   MetadataChange,
@@ -19,12 +20,17 @@ import type {
   MetadataWriteValidationIssue,
 } from "../models/MetadataWriteValidation";
 import type { MetadataWriteResult } from "../models/MetadataWriteResult";
+import { MetadataScanner } from "../scanner/MetadataScanner";
 import {
   detectMetadataWriteFormat,
   validateMetadataChangePlanStructure,
 } from "./MetadataWritePlanValidator";
 import { songMatchConfirmationService } from "./SongMatchConfirmationService";
-import { writeFlacTextMetadata } from "./flac/FlacMetadataWriter";
+import { downloadArtwork } from "./artwork/ArtworkDownloader";
+import {
+  writeFlacMetadata,
+  writeFlacTextMetadata,
+} from "./flac/FlacMetadataWriter";
 
 function addCheck(
   checks: MetadataWriteCheck[],
@@ -40,11 +46,13 @@ function addError(
   issues: MetadataWriteValidationIssue[],
   code: string,
   message: string,
+  field?: MetadataChange["field"],
 ) {
   issues.push({
     code,
     severity: "error",
     message,
+    field,
   });
 }
 
@@ -78,6 +86,7 @@ function currentMetadataValue(
 }
 
 export class MetadataWriterService {
+  private metadataScanner = new MetadataScanner();
   async dryRun(
     plan: MetadataChangePlan,
   ): Promise<MetadataWriteDryRunResult> {
