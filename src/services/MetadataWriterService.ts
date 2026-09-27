@@ -374,7 +374,17 @@ export class MetadataWriterService {
       plan.changes,
     );
 
-    updateSongTextMetadata(validation.filePath, metadata);
+    let libraryUpdated = true;
+    let warning: string | undefined;
+
+    try {
+      updateSongTextMetadata(validation.filePath, metadata);
+    } catch (error) {
+      libraryUpdated = false;
+      warning =
+        "FLAC文件已写入并验证成功，但歌曲库Metadata刷新失败，请重新扫描音乐库";
+      console.error("[WRITER] 更新歌曲库Metadata失败", error);
+    }
 
     return {
       mode: "write",
@@ -384,6 +394,8 @@ export class MetadataWriterService {
       changeCount: plan.changes.length,
       writtenFields: plan.changes.map((change) => change.field),
       metadata,
+      libraryUpdated,
+      warning,
       verifiedAt: Date.now(),
     };
   }
