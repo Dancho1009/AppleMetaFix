@@ -41,6 +41,7 @@ export default function DetailPanel({
   confirmation,
   previewSelectedFields,
   onPreviewSelectedFieldsChange,
+  onMetadataWritten,
   onMatchResultChange,
   onSelectCandidate,
   onConfirmCandidate,
@@ -54,6 +55,7 @@ export default function DetailPanel({
   confirmation: SongMatchConfirmation | null;
   previewSelectedFields: MetadataPreviewField[];
   onPreviewSelectedFieldsChange: (fields: MetadataPreviewField[]) => void;
+  onMetadataWritten: (songPath: string) => Promise<void>;
   onMatchResultChange: (result: MatchPipelineResult) => void;
   onSelectCandidate: (candidateKey: string) => void;
   onConfirmCandidate: (
@@ -425,6 +427,7 @@ export default function DetailPanel({
           confirmation={confirmation}
           selectedFields={previewSelectedFields}
           onSelectedFieldsChange={onPreviewSelectedFieldsChange}
+          onWriteComplete={() => onMetadataWritten(song.path)}
         />
       )}
 
