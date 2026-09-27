@@ -19,6 +19,13 @@ const FIELD_TO_VORBIS_TAG: Partial<Record<MetadataChange["field"], string>> = {
   composer: "COMPOSER",
 };
 
+function tagsToReplace(field: MetadataChange["field"]): string[] {
+  if (field === "year") return ["DATE", "YEAR"];
+
+  const tag = FIELD_TO_VORBIS_TAG[field];
+  return tag ? [tag] : [];
+}
+
 function readUInt32LE(buffer: Buffer, offset: number): number {
   if (offset < 0 || offset + 4 > buffer.length) {
     throw new Error("FLAC Vorbis Comment数据长度非法");
@@ -131,9 +138,7 @@ export function applyVorbisTextChanges(
   });
 
   const targetTags = new Set(
-    textChanges
-      .map((change) => FIELD_TO_VORBIS_TAG[change.field])
-      .filter((tag): tag is string => Boolean(tag)),
+    textChanges.flatMap((change) => tagsToReplace(change.field)),
   );
 
   const preserved = comments.filter(
