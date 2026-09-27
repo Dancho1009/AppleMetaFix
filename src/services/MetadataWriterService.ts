@@ -379,18 +379,34 @@ export class MetadataWriterService {
     const textChanges = changes.filter(
       (change) => change?.field !== "artwork",
     );
+    const artworkChange = changes.find(
+      (change) => change?.field === "artwork",
+    );
+
     const staleFields =
       parsedMetadata === null
         ? []
-        : textChanges
-            .filter((change) => {
-              const current = currentMetadataValue(
-                change.field,
-                parsedMetadata.common,
-              );
-              return current !== null && current !== text(change.before);
-            })
-            .map((change) => change.field);
+        : [
+            ...textChanges
+              .filter((change) => {
+                const current = currentMetadataValue(
+                  change.field,
+                  parsedMetadata.common,
+                );
+                return (
+                  current !== null &&
+                  current !== text(change.before)
+                );
+              })
+              .map((change) => change.field),
+            ...(artworkChange &&
+            !sourceArtworkMatches(
+              artworkChange.before,
+              parsedMetadata,
+            )
+              ? (["artwork"] as MetadataChange["field"][])
+              : []),
+          ];
 
     const sourceMetadataOk =
       parsedMetadata !== null && staleFields.length === 0;
