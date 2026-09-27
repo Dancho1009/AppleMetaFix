@@ -15,5 +15,7 @@ export interface MetadataWriteResult {
   changeCount: number;
   writtenFields: string[];
   metadata: FlacWrittenMetadata;
+  libraryUpdated: boolean;
+  warning?: string;
   verifiedAt: number;
 }
