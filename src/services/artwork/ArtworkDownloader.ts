@@ -295,7 +295,8 @@ function requestArtwork(
             )
               .split(";")[0]
               .trim()
-              .toLowerCase(),
+              .toLowerCase()
+              .replace(/^image\/jpg$/, "image/jpeg"),
           });
         });
 
