@@ -27,10 +27,7 @@ import {
 } from "./MetadataWritePlanValidator";
 import { songMatchConfirmationService } from "./SongMatchConfirmationService";
 import { downloadArtwork } from "./artwork/ArtworkDownloader";
-import {
-  writeFlacMetadata,
-  writeFlacTextMetadata,
-} from "./flac/FlacMetadataWriter";
+import { writeFlacMetadata } from "./flac/FlacMetadataWriter";
 
 function addCheck(
   checks: MetadataWriteCheck[],
