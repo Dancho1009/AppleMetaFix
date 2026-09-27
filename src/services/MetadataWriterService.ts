@@ -220,6 +220,44 @@ export class MetadataWriterService {
       );
     }
 
+    const targetMismatches =
+      confirmationMatches && confirmation
+        ? changes.filter(
+            (change) =>
+              text(change.after) !==
+              expectedConfirmedValue(
+                change.field,
+                confirmation,
+              ),
+          )
+        : [];
+
+    const targetMetadataOk =
+      confirmationMatches && targetMismatches.length === 0;
+
+    addCheck(
+      checks,
+      "target-metadata",
+      "目标Metadata",
+      targetMetadataOk,
+      targetMetadataOk
+        ? "所有目标值均来自当前已确认Apple Music版本"
+        : targetMismatches.length > 0
+          ? `以下字段与确认版本不一致：${targetMismatches
+              .map((change) => change.field)
+              .join("、")}`
+          : "无法验证目标Metadata来源",
+    );
+
+    for (const change of targetMismatches) {
+      addError(
+        issues,
+        "target-metadata-mismatch",
+        `字段 ${change.field} 的目标值与当前已确认Apple Music版本不一致`,
+        change.field,
+      );
+    }
+
     const fileExists = Boolean(filePath) && existsSync(filePath);
     addCheck(
       checks,
