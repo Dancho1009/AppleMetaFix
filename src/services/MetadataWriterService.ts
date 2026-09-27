@@ -548,6 +548,9 @@ export class MetadataWriterService {
         (change) => change.field,
       ),
       metadata,
+      coverDataUrl: artwork
+        ? `data:${artwork.mime};base64,${artwork.data.toString("base64")}`
+        : undefined,
       libraryUpdated,
       warning,
       verifiedAt: Date.now(),
