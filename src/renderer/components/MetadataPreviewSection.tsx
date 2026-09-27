@@ -89,13 +89,14 @@ export default function MetadataPreviewSection({
     () => JSON.stringify(changePlan),
     [changePlan],
   );
-  const flacTextWritable = useMemo(
+  const flacWritable = useMemo(
     () =>
       changePlan.changes.length > 0 &&
       changePlan.changes.every(
         (change) =>
-          change.kind === "text" &&
-          change.field !== "artwork",
+          change.kind === "text" ||
+          (change.field === "artwork" &&
+            change.kind === "artwork"),
       ),
     [changePlan],
   );
@@ -157,14 +158,14 @@ export default function MetadataPreviewSection({
     if (
       !dryRunResult?.ok ||
       dryRunResult.format !== "flac" ||
-      !flacTextWritable ||
+      !flacWritable ||
       writeRunning
     ) {
       return;
     }
 
     const confirmed = window.confirm(
-      "即将修改原FLAC文件的文本Metadata。写入前会再次执行安全校验，失败会自动回滚。是否继续？",
+      "即将修改原FLAC文件Metadata。若包含封面，会先从已确认的Apple Music地址下载并校验图片；写入前会再次执行安全校验，失败会自动回滚。是否继续？",
     );
     if (!confirmed) return;
 
@@ -172,7 +173,7 @@ export default function MetadataPreviewSection({
     setWriteError("");
 
     try {
-      const result = (await api.writeFlacTextMetadata(
+      const result = (await api.writeFlacMetadata(
         changePlan,
       )) as MetadataWriteResult;
 
@@ -200,7 +201,7 @@ export default function MetadataPreviewSection({
         <div>
           <h3>Metadata Preview</h3>
           <p>
-            写入前必须先通过 Dry Run；当前实际写入仅支持 FLAC 文本字段，封面暂不写入。
+            写入前必须先通过 Dry Run；当前支持 FLAC 文本字段与标准 PICTURE 封面写入。
           </p>
         </div>
         <span className="metadata-preview-status">FLAC Writer</span>
@@ -298,7 +299,7 @@ export default function MetadataPreviewSection({
           </p>
 
           {dryRunResult.ok && dryRunResult.format === "flac" && (
-            flacTextWritable ? (
+            flacWritable ? (
               <button
                 className="metadata-write-button"
                 onClick={runWrite}
@@ -310,7 +311,7 @@ export default function MetadataPreviewSection({
               </button>
             ) : (
               <p className="metadata-dry-run-note">
-                当前首版 Writer 只支持文本字段。请取消封面选择后重新执行 Dry Run。
+                当前写入计划包含尚未支持的字段组合。
               </p>
             )
           )}
@@ -328,7 +329,7 @@ export default function MetadataPreviewSection({
         <div className="metadata-dry-run metadata-dry-run-success">
           <div className="metadata-dry-run-heading">
             <strong>✓ FLAC Metadata写入完成</strong>
-            <span>{writeResult.changeCount} 项文本变更</span>
+            <span>{writeResult.changeCount} 项变更</span>
           </div>
           <p>
             已写入并重新读取验证：
